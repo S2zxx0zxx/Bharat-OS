@@ -71,7 +71,15 @@ export async function POST(req: NextRequest) {
     // Log the exact error message
     console.error('API route error caught:', error)
 
-    const message = error instanceof Error ? error.message : String(error)
+    let message = 'Unknown error'
+    if (error instanceof Error) {
+      message = error.message
+    } else if (typeof error === 'string') {
+      message = error
+    } else if (error && typeof error === 'object') {
+      message = 'message' in error ? String((error as any).message) : JSON.stringify(error)
+    }
+
     const errLower = message.toLowerCase()
 
     // If API key invalid

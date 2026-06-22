@@ -25,7 +25,7 @@ export async function generateResponse(
   tier: Tier
 ): Promise<GeminiResponse> {
   const ai = getGenAI()
-  const modelName = tier === 3 ? 'gemini-1.5-pro' : 'gemini-1.5-flash'
+  const modelName = 'gemini-2.0-flash'
 
   const maxTokensByTier: Record<Tier, number> = {
     1: 512,
