@@ -41,6 +41,12 @@ function useLocalStorage<T>(key: string, defaultValue: T): [T, Dispatch<SetState
   return [value, setStoredValue]
 }
 
+function getLanguageLabel(l: 'hi' | 'en' | 'hin'): string {
+  if (l === 'hi') return 'हिं'
+  if (l === 'en') return 'EN'
+  return 'Hin'
+}
+
 // ── ChatInterface ────────────────────────────────────────────────
 export function ChatInterface() {
   const { activeModuleId, activeModule, allModules, switchModule } =
@@ -146,9 +152,9 @@ export function ChatInterface() {
   )
 
   const handleVoiceInput = useCallback(() => {
-    if (typeof window === 'undefined') return
+    if (globalThis.window === undefined) return
     const SpeechRecognitionAPI =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      (globalThis.window as any).SpeechRecognition || (globalThis.window as any).webkitSpeechRecognition
     if (!SpeechRecognitionAPI) {
       alert('Aapka browser voice input support nahi karta')
       return
@@ -216,15 +222,19 @@ export function ChatInterface() {
         activeModule={activeModule}
         languageToggle={
           <div className="lang-toggle">
-            {(['hi', 'en', 'hin'] as const).map((l) => (
-              <button
-                key={l}
-                className={`lang-btn ${language === l ? 'active' : ''}`}
-                onClick={() => setLanguage(l)}
-              >
-                {l === 'hi' ? 'हिं' : l === 'en' ? 'EN' : 'Hin'}
-              </button>
-            ))}
+            {(['hi', 'en', 'hin'] as const).map((l) => {
+              const isActive = language === l
+              const btnClass = isActive ? 'lang-btn active' : 'lang-btn'
+              return (
+                <button
+                  key={l}
+                  className={btnClass}
+                  onClick={() => setLanguage(l)}
+                >
+                  {getLanguageLabel(l)}
+                </button>
+              )
+            })}
           </div>
         }
       />

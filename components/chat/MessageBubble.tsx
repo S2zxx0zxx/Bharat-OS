@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Message } from '@/types'
 import { getModule } from '@/lib/modules'
-import { Volume2, VolumeX, Calculator, Landmark, PhoneCall } from 'lucide-react'
+import { Landmark } from 'lucide-react'
 
 interface Token {
   type: 'text' | 'link' | 'helpline'
@@ -12,7 +12,7 @@ interface Token {
 }
 
 function tokenizeText(text: string): Token[] {
-  const combinedRegex = /\b(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.(?:gov\.in|ac\.in|samarth\.ac\.in|com|org|net)(?:\/[^\s]*)?)\b|\b(1800-\d{2,3}-\d{3,4}|\b181\b|\b108\b|\b102\b|\b100\b)\b/gi
+  const combinedRegex = /(https?:\/\/\S+|[a-zA-Z0-9.-]+\.(?:gov\.in|ac\.in|com|org|net)(?:\/\S*)?|1800-\d{2,3}-\d{3,4}|181|108|102|100)/gi
 
   const tokens: Token[] = []
   let lastIndex = 0
@@ -31,17 +31,11 @@ function tokenizeText(text: string): Token[] {
       })
     }
 
-    if (match[1]) {
-      tokens.push({
-        type: 'link',
-        text: matchStr,
-      })
-    } else {
-      tokens.push({
-        type: 'helpline',
-        text: matchStr,
-      })
-    }
+    const isHelpline = /^(1800-\d{2,3}-\d{3,4}|181|108|102|100)$/.test(matchStr)
+    tokens.push({
+      type: isHelpline ? 'helpline' : 'link',
+      text: matchStr,
+    })
 
     lastIndex = combinedRegex.lastIndex
   }
@@ -58,19 +52,28 @@ function tokenizeText(text: string): Token[] {
 
 function formatInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((part, index) => {
+  const seenKeys = new Map<string, number>()
+  const getUniqueKey = (prefix: string, val: string) => {
+    const sanitizedVal = val.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)
+    const baseKey = `${prefix}-${sanitizedVal}`
+    const count = seenKeys.get(baseKey) || 0
+    seenKeys.set(baseKey, count + 1)
+    return count === 0 ? baseKey : `${baseKey}-${count}`
+  }
+
+  return parts.map((part) => {
     const isBold = part.startsWith('**') && part.endsWith('**')
     const rawText = isBold ? part.slice(2, -2) : part
 
     const subParts = tokenizeText(rawText)
-    const formatted = subParts.map((sub, sIdx) => {
+    const formatted = subParts.map((sub) => {
       if (sub.type === 'link') {
         const url = sub.text.startsWith('http') ? sub.text : `https://${sub.text}`
         const isGov = sub.text.includes('.gov.in') || sub.text.includes('.nic.in')
         if (isGov) {
           return (
             <a
-              key={`link-${index}-${sIdx}`}
+              key={getUniqueKey('link-gov', sub.text)}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
@@ -83,7 +86,7 @@ function formatInline(text: string): React.ReactNode {
         }
         return (
           <a
-            key={`link-${index}-${sIdx}`}
+            key={getUniqueKey('link-normal', sub.text)}
             href={url}
             target="_blank"
             rel="noopener noreferrer"
@@ -95,8 +98,8 @@ function formatInline(text: string): React.ReactNode {
       } else if (sub.type === 'helpline') {
         return (
           <a
-            key={`help-${index}-${sIdx}`}
-            href={`tel:${sub.text.replace(/-/g, '')}`}
+            key={getUniqueKey('help', sub.text)}
+            href={`tel:${sub.text.replaceAll('-', '')}`}
             className="helpline-call-btn"
           >
             📞 {sub.text}
@@ -109,13 +112,84 @@ function formatInline(text: string): React.ReactNode {
 
     if (isBold) {
       return (
-        <strong key={`bold-${index}`} className="font-bold text-gray-900 dark:text-white">
+        <strong key={getUniqueKey('bold', rawText)} className="font-bold text-gray-900 dark:text-white">
           {formatted}
         </strong>
       )
     }
-    return <React.Fragment key={`text-${index}`}>{formatted}</React.Fragment>
+    return <React.Fragment key={getUniqueKey('text', rawText)}>{formatted}</React.Fragment>
   })
+}
+
+// Extracted helper to reduce cognitive complexity of formatContent
+function getSpecialLineElement(trimmed: string, lineKey: string, i: number): React.ReactNode | null {
+  if (trimmed === '') {
+    return i > 0 ? <div key={`gap-${lineKey}`} className="h-2" /> : null
+  }
+  if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+    return (
+      <p key={lineKey} className="message-heading font-bold text-gray-900 dark:text-white mt-3 mb-1">
+        {trimmed.slice(2, -2)}
+      </p>
+    )
+  }
+  if (trimmed.startsWith('#')) {
+    const text = trimmed.replace(/^#+\s/, '')
+    return (
+      <p key={lineKey} className="message-heading font-bold text-gray-900 dark:text-white mt-3 mb-1">
+        {text}
+      </p>
+    )
+  }
+  if (trimmed.startsWith('⚠️')) {
+    return (
+      <div key={lineKey} className="bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400 p-3.5 my-2 rounded-r-lg text-orange-900 dark:text-orange-200 text-sm shadow-sm flex items-start gap-2">
+        <span>{formatInline(trimmed)}</span>
+      </div>
+    )
+  }
+  if (trimmed.startsWith('✅')) {
+    return (
+      <div key={lineKey} className="bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 p-3.5 my-2 rounded-r-lg text-green-900 dark:text-green-200 text-sm shadow-sm flex items-start gap-2">
+        <span>{formatInline(trimmed)}</span>
+      </div>
+    )
+  }
+  if (trimmed.startsWith('📊')) {
+    return (
+      <div key={lineKey} className="message-disclaimer">
+        {formatInline(trimmed)}
+      </div>
+    )
+  }
+  return null
+}
+
+function flushListHelper(listItems: string[], listType: 'bullet' | 'ordered' | null, key: string): React.ReactNode | null {
+  if (listItems.length === 0) return null
+  if (listType === 'bullet') {
+    return (
+      <ul key={`ul-${key}`} className="list-disc pl-5 my-2 space-y-1.5 text-gray-800 dark:text-gray-200">
+        {listItems.map((item) => (
+          <li key={`li-bullet-${key}-${item.slice(0, 35)}`}>
+            {formatInline(item)}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  if (listType === 'ordered') {
+    return (
+      <ol key={`ol-${key}`} className="list-decimal pl-5 my-2 space-y-1.5 text-gray-800 dark:text-gray-200">
+        {listItems.map((item) => (
+          <li key={`li-ordered-${key}-${item.slice(0, 35)}`}>
+            {formatInline(item)}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+  return null
 }
 
 function formatContent(content: string): React.ReactNode {
@@ -126,32 +200,11 @@ function formatContent(content: string): React.ReactNode {
   let listItems: string[] = []
   let listType: 'bullet' | 'ordered' | null = null
 
-  const flushList = (key: string) => {
-    if (listItems.length > 0) {
-      if (listType === 'bullet') {
-        elements.push(
-          <ul key={`ul-${key}`} className="list-disc pl-5 my-2 space-y-1.5 text-gray-800 dark:text-gray-200">
-            {listItems.map((item, idx) => (
-              <li key={`li-bullet-${key}-${idx}`}>
-                {formatInline(item)}
-              </li>
-            ))}
-          </ul>
-        )
-      } else if (listType === 'ordered') {
-        elements.push(
-          <ol key={`ol-${key}`} className="list-decimal pl-5 my-2 space-y-1.5 text-gray-800 dark:text-gray-200">
-            {listItems.map((item, idx) => (
-              <li key={`li-ordered-${key}-${idx}`}>
-                {formatInline(item)}
-              </li>
-            ))}
-          </ol>
-        )
-      }
-      listItems = []
-      listType = null
-    }
+  const handleFlush = (key: string) => {
+    const el = flushListHelper(listItems, listType, key)
+    if (el) elements.push(el)
+    listItems = []
+    listType = null
   }
 
   lines.forEach((line, i) => {
@@ -163,61 +216,32 @@ function formatContent(content: string): React.ReactNode {
 
     if (isBullet) {
       if (listType !== 'bullet') {
-        flushList(String(i))
+        handleFlush(String(i))
         listType = 'bullet'
       }
       listItems.push(trimmed.substring(2))
     } else if (isOrdered) {
       if (listType !== 'ordered') {
-        flushList(String(i))
+        handleFlush(String(i))
         listType = 'ordered'
       }
       listItems.push(trimmed.replace(/^\d+\.\s/, ''))
     } else {
-      flushList(String(i))
-      if (trimmed === '') {
-        if (i > 0) elements.push(<div key={`gap-${lineKey}`} className="h-2" />)
-      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-        elements.push(
-          <p key={lineKey} className="message-heading font-bold text-gray-900 dark:text-white mt-3 mb-1">
-            {trimmed.slice(2, -2)}
-          </p>
-        )
-      } else if (trimmed.startsWith('#')) {
-        const text = trimmed.replace(/^#+\s/, '')
-        elements.push(
-          <p key={lineKey} className="message-heading font-bold text-gray-900 dark:text-white mt-3 mb-1">
-            {text}
-          </p>
-        )
-      } else if (trimmed.startsWith('⚠️')) {
-        elements.push(
-          <div key={lineKey} className="bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400 p-3.5 my-2 rounded-r-lg text-orange-900 dark:text-orange-200 text-sm shadow-sm flex items-start gap-2">
-            <span>{formatInline(trimmed)}</span>
-          </div>
-        )
-      } else if (trimmed.startsWith('✅')) {
-        elements.push(
-          <div key={lineKey} className="bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 p-3.5 my-2 rounded-r-lg text-green-900 dark:text-green-200 text-sm shadow-sm flex items-start gap-2">
-            <span>{formatInline(trimmed)}</span>
-          </div>
-        )
-      } else if (trimmed.startsWith('📊')) {
-        elements.push(
-          <div key={lineKey} className="message-disclaimer">
-            {formatInline(trimmed)}
-          </div>
-        )
-      } else {
+      handleFlush(String(i))
+      const special = getSpecialLineElement(trimmed, lineKey, i)
+      if (special !== null) {
+        elements.push(special)
+      } else if (trimmed !== '') {
         elements.push(<p key={lineKey} className="my-1.5 leading-relaxed">{formatInline(trimmed)}</p>)
       }
     }
   })
 
-  flushList('end')
+  handleFlush('end')
   return elements
 }
-function EMIWidget({ moduleColor }: { moduleColor: string }) {
+
+function EMIWidget({ moduleColor }: Readonly<{ moduleColor: string }>) {
   const [loan, setLoan] = useState(500000)
   const [rate, setRate] = useState(8.5)
   const [tenure, setTenure] = useState(20)
@@ -373,7 +397,8 @@ function SIPCalculator() {
   )
 }
 
-export function MessageBubble({ message }: Readonly<{ message: Message }>) {
+export function MessageBubble(props: Readonly<{ message: Message }>) {
+  const { message } = props
   const module = getModule(message.moduleId)
   const isUser = message.role === 'user'
   const timeStr = message.timestamp.toLocaleTimeString('hi-IN', {
@@ -398,18 +423,22 @@ export function MessageBubble({ message }: Readonly<{ message: Message }>) {
   }, [message.content, isUser])
 
   const handleTTS = (text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    if (typeof globalThis !== 'undefined' && globalThis.speechSynthesis) {
+      const synth = globalThis.speechSynthesis
       if (isPlaying) {
-        window.speechSynthesis.cancel()
+        synth.cancel()
         setIsPlaying(false)
       } else {
-        window.speechSynthesis.cancel()
-        const cleanText = text.replace(/[⚠️✅📞]/g, '')
-        const utterance = new SpeechSynthesisUtterance(cleanText)
+        synth.cancel()
+        const cleanText = text
+          .replaceAll('⚠️', '')
+          .replaceAll('✅', '')
+          .replaceAll('📞', '')
+        const utterance = new globalThis.SpeechSynthesisUtterance(cleanText)
         utterance.lang = 'hi-IN'
         utterance.rate = 0.9
 
-        const voices = window.speechSynthesis.getVoices()
+        const voices = synth.getVoices()
         const hindiVoice = voices.find(
           (v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi')
         )
@@ -418,15 +447,15 @@ export function MessageBubble({ message }: Readonly<{ message: Message }>) {
         utterance.onend = () => setIsPlaying(false)
         utterance.onerror = () => setIsPlaying(false)
         setIsPlaying(true)
-        window.speechSynthesis.speak(utterance)
+        synth.speak(utterance)
       }
     }
   }
 
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
+      if (typeof globalThis !== 'undefined' && globalThis.speechSynthesis) {
+        globalThis.speechSynthesis.cancel()
       }
     }
   }, [])

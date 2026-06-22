@@ -6,24 +6,26 @@ import { Send, Mic, MicOff } from 'lucide-react'
 import { Module } from '@/types'
 
 interface InputBarProps {
-  module: Module
-  onSend: (text: string) => void
-  disabled: boolean
-  isLoading: boolean
-  onVoiceInput?: () => void
-  isRecording?: boolean
-  hasMessages?: boolean
+  readonly module: Module
+  readonly onSend: (text: string) => void
+  readonly disabled: boolean
+  readonly isLoading: boolean
+  readonly onVoiceInput?: () => void
+  readonly isRecording?: boolean
+  readonly hasMessages?: boolean
 }
 
-export function InputBar({
-  module,
-  onSend,
-  disabled,
-  isLoading,
-  onVoiceInput,
-  isRecording = false,
-  hasMessages = false,
-}: InputBarProps) {
+export function InputBar(props: Readonly<InputBarProps>) {
+  const {
+    module,
+    onSend,
+    disabled,
+    isLoading,
+    onVoiceInput,
+    isRecording = false,
+    hasMessages = false,
+  } = props
+
   const [text, setText] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -57,19 +59,18 @@ export function InputBar({
 
   const canSend = text.trim().length > 0 && !disabled && !isLoading
 
+  const boxShadowStyle = getBoxShadowStyle(isFocused, isRecording, text.length > 0, module.color)
+  const counterClass = getCounterClass(text.length)
+
+  const placeholderText = isRecording
+    ? 'Bolna shuru karein (Awaaz sun rahe hain…)'
+    : `${module.name} se poochein… (Enter to send)`
+
   return (
     <div className="input-bar-wrapper">
       <div
         className="input-bar transition-all duration-300"
-        style={{
-          boxShadow: isFocused
-            ? `0 0 0 2px ${module.color}, 0 8px 32px rgba(0,0,0,0.12)`
-            : isRecording
-            ? '0 0 0 2px #EF4444, 0 8px 32px rgba(239, 68, 68, 0.2)'
-            : text
-            ? `0 0 0 2px ${module.color}40, 0 4px 16px rgba(0,0,0,0.06)`
-            : '0 4px 16px rgba(0,0,0,0.04)',
-        }}
+        style={{ boxShadow: boxShadowStyle }}
       >
         <textarea
           id="chat-input"
@@ -80,11 +81,7 @@ export function InputBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={
-            isRecording
-              ? 'Bolna shuru karein (Awaaz sun rahe hain…)'
-              : `${module.name} se poochein… (Enter to send)`
-          }
+          placeholder={placeholderText}
           disabled={disabled || isRecording}
           maxLength={1000}
           rows={1}
@@ -95,14 +92,14 @@ export function InputBar({
 
         <div className="input-actions">
           {text.length > 80 && (
-            <span className={`char-counter ${text.length > 400 ? 'danger' : text.length > 250 ? 'warning' : ''}`}>
+            <span className={`char-counter ${counterClass}`}>
               {text.length}/1000
             </span>
           )}
 
           <button
             type="button"
-            className={`input-mic-btn ${isRecording ? 'recording' : ''}`}
+            className={isRecording ? 'input-mic-btn recording' : 'input-mic-btn'}
             onClick={onVoiceInput}
             aria-label={isRecording ? 'Recording...' : 'Voice input'}
             title={isRecording ? 'Bol raha hoon...' : 'Bolo apna sawaal'}
@@ -150,4 +147,32 @@ export function InputBar({
       </div>
     </div>
   )
+}
+
+function getBoxShadowStyle(
+  isFocused: boolean,
+  isRecording: boolean,
+  hasText: boolean,
+  moduleColor: string
+): string {
+  if (isFocused) {
+    return `0 0 0 2px ${moduleColor}, 0 8px 32px rgba(0,0,0,0.12)`
+  }
+  if (isRecording) {
+    return '0 0 0 2px #EF4444, 0 8px 32px rgba(239, 68, 68, 0.2)'
+  }
+  if (hasText) {
+    return `0 0 0 2px ${moduleColor}40, 0 4px 16px rgba(0,0,0,0.06)`
+  }
+  return '0 4px 16px rgba(0,0,0,0.04)'
+}
+
+function getCounterClass(length: number): string {
+  if (length > 400) {
+    return 'danger'
+  }
+  if (length > 250) {
+    return 'warning'
+  }
+  return ''
 }

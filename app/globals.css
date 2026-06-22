@@ -398,10 +398,10 @@ body {
   cursor: pointer; transition: all var(--dur-normal) var(--ease-spring);
   opacity: 1;
 }
-.input-mic-btn:hover { border-color: #EF4444; color: #EF4444; background: #FEF2F2; }
+.input-mic-btn:hover { border-color: #B91C1C; color: #B91C1C; background: #FEF2F2; }
 .input-mic-btn.recording {
-  background: #EF4444 !important; color: white !important;
-  border-color: #DC2626 !important;
+  background: #B91C1C !important; color: white !important;
+  border-color: #991B1B !important;
   box-shadow: 0 0 0 4px rgba(239,68,68,0.2);
   animation: mic-pulse 1.2s ease-in-out infinite;
 }
@@ -566,7 +566,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-top: 8px;
 }
 .tts-btn:hover { background: var(--saffron); color: white; border-color: var(--saffron); }
-.tts-btn.playing { background: #10B981; color: white; border-color: #059669; }
+.tts-btn.playing { background: #059669; color: white; border-color: #047857; }
 
 /* ── LANGUAGE TOGGLE ── */
 .lang-toggle {
@@ -608,10 +608,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .island-idle { background: rgba(15,23,42,0.95); color: #F8FAFC; border-color: rgba(255,255,255,0.1); }
 .dark .island-idle { background: rgba(30,41,59,0.95); border-color: rgba(255,255,255,0.05); }
 .island-thinking { background: #7C3AED; color: white; box-shadow: 0 0 20px rgba(124,58,237,0.4); }
-.island-listening { background: #EF4444; color: white; box-shadow: 0 0 20px rgba(239,68,68,0.5); animation: island-pulse 1.5s infinite; }
-.island-redacted { background: #10B981; color: white; box-shadow: 0 0 20px rgba(16,185,129,0.4); }
-.island-warning { background: #F59E0B; color: white; }
-.island-error { background: #EF4444; color: white; }
+.island-listening { background: #B91C1C; color: white; box-shadow: 0 0 20px rgba(185,28,28,0.5); animation: island-pulse 1.5s infinite; }
+.island-redacted { background: #059669; color: white; box-shadow: 0 0 20px rgba(5,150,105,0.4); }
+.island-warning { background: #B45309; color: white; }
+.island-error { background: #B91C1C; color: white; }
 @keyframes island-pulse {
   0%,100% { transform: scale(1); } 50% { transform: scale(1.04); }
 }

@@ -22,7 +22,7 @@ export function SuggestionChips({
       <div className="suggestions-grid">
         {module.suggestions.map((suggestion, index) => (
           <motion.button
-            key={index}
+            key={suggestion}
             className="suggestion-chip"
             style={{ borderLeftColor: module.color }}
             initial={{ opacity: 0, x: -12 }}

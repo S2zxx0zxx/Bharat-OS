@@ -17,9 +17,9 @@ export function TypingIndicator({ moduleColor }: Readonly<TypingIndicatorProps>)
       className="flex items-end gap-2 mb-3"
     >
       <div className="typing-bubble">
-        {[0, 160, 320].map((delay, i) => (
+        {[0, 160, 320].map((delay) => (
           <span
-            key={i}
+            key={delay}
             className="typing-dot"
             style={{ backgroundColor: moduleColor, '--delay': `${delay}ms` } as React.CSSProperties}
           />
