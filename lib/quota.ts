@@ -90,7 +90,22 @@ export function checkQuotaExceeded(userId: string): boolean {
   return quota.remaining <= 0
 }
 
+function cleanOldQuotaKeys(): void {
+  if (globalThis.window === undefined) return
+  const today = new Date().toISOString().split('T')[0]
+  const keysToDelete: string[] = []
+  
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key?.startsWith(QUOTA_KEY_PREFIX) && !key.includes(today)) {
+      keysToDelete.push(key)
+    }
+  }
+  keysToDelete.forEach(k => localStorage.removeItem(k))
+}
+
 export function getAnonymousUserId(): string {
+  cleanOldQuotaKeys()
   if (globalThis.window === undefined) return 'server'
 
   let id = localStorage.getItem('bharatos-anon-id')

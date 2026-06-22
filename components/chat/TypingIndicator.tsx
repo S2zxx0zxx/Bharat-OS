@@ -7,7 +7,7 @@ interface TypingIndicatorProps {
   readonly moduleColor: string
 }
 
-export function TypingIndicator({ moduleColor: _moduleColor }: Readonly<TypingIndicatorProps>) {
+export function TypingIndicator({ moduleColor }: Readonly<TypingIndicatorProps>) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -17,18 +17,15 @@ export function TypingIndicator({ moduleColor: _moduleColor }: Readonly<TypingIn
       className="flex items-end gap-2 mb-4"
     >
       <div className="typing-bubble">
-        <span
-          className="typing-dot"
-          style={{ '--delay': '0ms' } as React.CSSProperties}
-        />
-        <span
-          className="typing-dot"
-          style={{ '--delay': '160ms' } as React.CSSProperties}
-        />
-        <span
-          className="typing-dot"
-          style={{ '--delay': '320ms' } as React.CSSProperties}
-        />
+        {[0, 160, 320].map((delay, i) => (
+          <motion.span
+            key={i}
+            className="typing-dot"
+            style={{ backgroundColor: moduleColor, '--delay': `${delay}ms` } as React.CSSProperties}
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 0.8, repeat: Infinity, delay: delay / 1000 }}
+          />
+        ))}
       </div>
       <span className="text-xs text-gray-400 mb-1">AI soch raha hai…</span>
     </motion.div>

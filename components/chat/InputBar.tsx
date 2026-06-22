@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback, KeyboardEvent } from 'react'
+import { useState, useRef, useCallback, KeyboardEvent, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Mic } from 'lucide-react'
+import { Send, Mic, MicOff } from 'lucide-react'
 import { Module } from '@/types'
 
 interface InputBarProps {
@@ -10,6 +10,8 @@ interface InputBarProps {
   onSend: (text: string) => void
   disabled?: boolean
   isLoading?: boolean
+  hasMessages?: boolean
+  onSpeechStateChange?: (state: 'listening' | 'idle' | 'error', transcript?: string) => void
 }
 
 export function InputBar({
@@ -17,9 +19,58 @@ export function InputBar({
   onSend,
   disabled = false,
   isLoading = false,
+  hasMessages = false,
+  onSpeechStateChange,
 }: InputBarProps) {
   const [text, setText] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition()
+        recognition.continuous = false
+        recognition.interimResults = false
+        recognition.lang = 'hi-IN' // Hindi / Hinglish voice matching
+
+        recognition.onstart = () => {
+          setIsListening(true)
+          if (onSpeechStateChange) onSpeechStateChange('listening')
+        }
+
+        recognition.onend = () => {
+          setIsListening(false)
+          if (onSpeechStateChange) onSpeechStateChange('idle')
+        }
+
+        recognition.onerror = () => {
+          setIsListening(false)
+          if (onSpeechStateChange) onSpeechStateChange('error')
+        }
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript
+          if (transcript) {
+            setText((prev) => {
+              const updated = prev ? `${prev} ${transcript}` : transcript
+              // Trigger auto-resize after appending speech text
+              setTimeout(handleInput, 50);
+              return updated
+            })
+            if (onSpeechStateChange) onSpeechStateChange('idle', transcript)
+          }
+        }
+
+        recognitionRef.current = recognition
+      }
+    }
+  }, [onSpeechStateChange])
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim()
@@ -48,16 +99,38 @@ export function InputBar({
     ta.style.height = `${Math.min(ta.scrollHeight, 140)}px`
   }
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Aapke browser mein voice typing support nahi hai. Google Chrome use karein.')
+      return
+    }
+    if (isListening) {
+      recognitionRef.current.stop()
+    } else {
+      try {
+        recognitionRef.current.start()
+      } catch {
+        // Recognition already started or starting
+      }
+    }
+  }
+
   const canSend = text.trim().length > 0 && !disabled && !isLoading
+  const hasVoiceSupport = typeof window !== 'undefined' && 
+    (!!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition)
 
   return (
     <div className="input-bar-wrapper">
       <div
-        className="input-bar"
+        className="input-bar transition-all duration-300"
         style={{
-          boxShadow: text
-            ? `0 0 0 2px ${module.color}60, 0 4px 24px rgba(0,0,0,0.12)`
-            : '0 4px 24px rgba(0,0,0,0.08)',
+          boxShadow: isFocused
+            ? `0 0 0 2px ${module.color}, 0 8px 32px rgba(0,0,0,0.12)`
+            : isListening
+            ? '0 0 0 2px #EF4444, 0 8px 32px rgba(239, 68, 68, 0.2)'
+            : text
+            ? `0 0 0 2px ${module.color}40, 0 4px 16px rgba(0,0,0,0.06)`
+            : '0 4px 16px rgba(0,0,0,0.04)',
         }}
       >
         <textarea
@@ -67,8 +140,15 @@ export function InputBar({
           onChange={(e) => setText(e.target.value)}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder={`${module.name} se poochein… (Enter to send)`}
-          disabled={disabled}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={
+            isListening
+              ? 'Bolna shuru karein (Awaaz sun rahe hain…)'
+              : `${module.name} se poochein… (Enter to send)`
+          }
+          disabled={disabled || isListening}
+          maxLength={1000}
           rows={1}
           className="input-textarea"
           aria-label="Chat input"
@@ -76,14 +156,24 @@ export function InputBar({
         />
 
         <div className="input-actions">
-          <button
-            className="input-mic-btn"
-            aria-label="Voice input (coming soon)"
-            disabled
-            title="Voice input coming soon"
-          >
-            <Mic size={18} />
-          </button>
+          {hasVoiceSupport && (
+            <motion.button
+              type="button"
+              onClick={toggleListening}
+              className={`input-mic-btn ${isListening ? 'listening-active' : ''}`}
+              animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+              transition={isListening ? { repeat: Infinity, duration: 1.2 } : {}}
+              aria-label={isListening ? 'Stop listening' : 'Start voice input'}
+              style={{
+                color: isListening ? '#EF4444' : '#64748B',
+                cursor: 'pointer',
+                opacity: 1,
+              }}
+              title={isListening ? 'Stop voice typing' : 'Voice typing in Hindi'}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </motion.button>
+          )}
 
           <AnimatePresence>
             <motion.button
@@ -114,9 +204,20 @@ export function InputBar({
         </div>
       </div>
 
-      <p id="input-hint" className="input-hint">
-        <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
-      </p>
+      <div className="flex justify-between items-center mt-1.5 px-1 text-xs text-gray-400">
+        <div>
+          {!hasMessages && (
+            <p id="input-hint" className="input-hint" style={{ margin: 0 }}>
+              Enter bhejne ke liye · <kbd className="text-[10px] bg-gray-100 dark:bg-gray-800 border px-1 py-0.5 rounded">Shift+Enter</kbd> naya line
+            </p>
+          )}
+        </div>
+        {text.length > 100 && (
+          <span className="character-counter text-gray-500 font-mono ml-auto">
+            {text.length} / 1000
+          </span>
+        )}
+      </div>
     </div>
   )
 }

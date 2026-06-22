@@ -2,25 +2,14 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'BharatOS — India ka AI Life Operating System',
-  description:
-    'BharatOS: Free AI assistant for legal help, government schemes, health, finance, agriculture & education. Rural & urban Indians ke liye. Hindi/Hinglish mein.',
-  keywords: [
-    'BharatOS', 'India AI', 'legal help India', 'government schemes', 'PM Kisan',
-    'Ayushman Bharat', 'RTI', 'consumer court', 'free legal aid', 'NyayBot',
-    'JanSeva', 'Swasthya', 'Dhan', 'Kisan', 'Gyaan',
-  ],
-  authors: [{ name: 'BharatOS' }],
+  title: 'BharatOS — India ka AI Life Assistant',
+  description: 'Legal help, Govt schemes, Health info, Finance guidance — sab Hindi mein, free mein. India ka pehla AI life OS.',
+  keywords: ['BharatOS', 'India AI', 'legal help Hindi', 'govt schemes', 'NyayBot'],
+  authors: [{ name: 'BharatOS Team' }],
   openGraph: {
-    title: 'BharatOS — India ka AI Life Operating System',
-    description: 'Legal, Govt Schemes, Health, Finance, Agriculture, Education — sab ek jagah.',
+    title: 'BharatOS — India ka AI',
+    description: 'Legal · Health · Govt · Finance — Hindi mein',
     type: 'website',
-    locale: 'hi_IN',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'BharatOS',
-    description: 'India ka AI Life Operating System',
   },
 }
 

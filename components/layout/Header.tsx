@@ -2,12 +2,13 @@
 
 import { motion } from 'framer-motion'
 import { Moon, Sun, Zap } from 'lucide-react'
-import { QuotaState } from '@/types'
+import { QuotaState, Module } from '@/types'
 
 interface HeaderProps {
   readonly quota: QuotaState
   readonly darkMode: boolean
   readonly onToggleDark: () => void
+  readonly activeModule?: Module
 }
 
 function getQuotaColor(remaining: number): string {
@@ -16,7 +17,7 @@ function getQuotaColor(remaining: number): string {
   return '#DC2626'
 }
 
-export function Header({ quota, darkMode, onToggleDark }: Readonly<HeaderProps>) {
+export function Header({ quota, darkMode, onToggleDark, activeModule }: Readonly<HeaderProps>) {
   const quotaPercent = Math.round(
     ((quota.limit - quota.remaining) / quota.limit) * 100
   )
@@ -50,6 +51,24 @@ export function Header({ quota, darkMode, onToggleDark }: Readonly<HeaderProps>)
 
         {/* Right controls */}
         <div className="header-controls">
+          {/* Active Module Badge */}
+          {activeModule && (
+            <motion.div
+              className="active-module-badge px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
+              style={{
+                backgroundColor: activeModule.colorLight,
+                color: activeModule.color,
+                border: `1px solid ${activeModule.color}20`,
+              }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <span>{activeModule.emoji}</span>
+              <span>{activeModule.name}</span>
+            </motion.div>
+          )}
+
           {/* Quota badge */}
           <motion.div
             className="quota-badge"

@@ -4,6 +4,18 @@ import { generateResponse } from '@/lib/gemini'
 import { securityCheck } from '@/lib/security'
 import { ModuleId, ApiChatRequest } from '@/types'
 
+function sanitizeHistory(
+  history: Array<{ role: string; content: string }>
+): Array<{ role: string; content: string }> {
+  return history.map((msg) => {
+    const check = securityCheck(msg.content)
+    return {
+      role: msg.role,
+      content: check.isSafe ? check.sanitizedQuery : '[message redacted]',
+    }
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: ApiChatRequest = await req.json()
@@ -36,7 +48,7 @@ export async function POST(req: NextRequest) {
     const { text, tokensUsed } = await generateResponse(
       security.sanitizedQuery,
       module,
-      conversationHistory,
+      sanitizeHistory(conversationHistory),
       tier
     )
 

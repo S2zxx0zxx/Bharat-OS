@@ -14,18 +14,21 @@ export function ModuleTab({ module, isActive, onClick }: Readonly<ModuleTabProps
     <motion.button
       id={`module-tab-${module.id}`}
       onClick={() => onClick(module.id)}
-      whileHover={{ scale: 1.03, y: -2 }}
+      animate={{ scale: isActive ? 1.05 : 1 }}
+      whileHover={{ scale: isActive ? 1.08 : 1.03, y: -2 }}
       whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`module-tab ${isActive ? 'module-tab-active' : 'module-tab-inactive'}`}
-      style={
-        isActive
+      transition={{ duration: 0.2 }}
+      className={`module-tab ${isActive ? 'module-tab-active text-white' : 'module-tab-inactive'}`}
+      style={{
+        transition: 'color 200ms ease, background-color 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+        ...(isActive
           ? {
               background: module.gradient,
-              boxShadow: `0 4px 20px ${module.color}40, 0 2px 8px ${module.color}30`,
+              boxShadow: `0 4px 16px ${module.color}40`,
+              color: '#FFFFFF',
             }
-          : {}
-      }
+          : {}),
+      }}
       aria-pressed={isActive}
       aria-label={`Switch to ${module.name} — ${module.description}`}
     >
@@ -33,10 +36,12 @@ export function ModuleTab({ module, isActive, onClick }: Readonly<ModuleTabProps
         {module.emoji}
       </span>
       <span className="module-tab-content">
-        <span className="module-tab-name">{module.name}</span>
+        <span className="module-tab-name" style={{ color: isActive ? '#FFFFFF' : 'inherit' }}>
+          {module.name}
+        </span>
         <span
           className="module-tab-desc"
-          style={{ color: isActive ? 'rgba(255,255,255,0.75)' : module.color }}
+          style={{ color: isActive ? 'rgba(255,255,255,0.8)' : module.color }}
         >
           {module.description}
         </span>
