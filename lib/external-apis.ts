@@ -282,16 +282,15 @@ export async function fetchMandiPrices(
     if (!data.records || data.records.length === 0) return null
 
     return data.records.map(
-      (r: Record<string, string>) =>
-        ({
-          commodity: r.commodity ?? commodity,
-          market: r.market ?? 'N/A',
-          state: r.state ?? 'N/A',
-          minPrice: Number(r.min_price) || 0,
-          maxPrice: Number(r.max_price) || 0,
-          modalPrice: Number(r.modal_price) || 0,
-          unit: 'Quintal',
-        }) as MandiPrice
+      (r: Record<string, string>): MandiPrice => ({
+        commodity: r.commodity ?? commodity,
+        market: r.market ?? 'N/A',
+        state: r.state ?? 'N/A',
+        minPrice: Number(r.min_price) || 0,
+        maxPrice: Number(r.max_price) || 0,
+        modalPrice: Number(r.modal_price) || 0,
+        unit: 'Quintal',
+      })
     )
   } catch {
     return null
@@ -322,15 +321,12 @@ export async function fetchPincodeInfo(
     if (!res.ok) return null
 
     const data = await res.json()
-    if (
-      !data[0] ||
-      data[0].Status !== 'Success' ||
-      !data[0].PostOffice?.length
-    ) {
+    const entry = data[0]
+    if (entry?.Status !== 'Success' || !entry.PostOffice?.length) {
       return null
     }
 
-    const po = data[0].PostOffice[0]
+    const po = entry.PostOffice[0]
     return {
       postOffice: po.Name,
       district: po.District,
@@ -344,7 +340,7 @@ export async function fetchPincodeInfo(
 }
 
 function extractPincodeFromQuery(query: string): string | null {
-  const match = query.match(/\b\d{6}\b/)
+  const match = /\b\d{6}\b/.exec(query)
   return match ? match[0] : null
 }
 
@@ -362,16 +358,10 @@ function formatPincodeContext(info: PincodeInfo, pincode: string): string {
 
 export async function fetchMetalPrices(): Promise<MetalPrices | null> {
   try {
-    const url = 'https://www.metals-api.com/api/latest?access_key=placeholder&base=INR&symbols=XAU,XAG'
-    // metals-api requires key; use a simpler free alternative
-    // Fallback: use a static-ish calculation from international price
-    const goldUrl = 'https://api.metalpriceapi.com/v1/latest?api_key=demo&base=INR&currencies=XAU,XAG'
-
-    // Since most free metals APIs are unreliable, we use a curated approach
-    // Try metals.live (Indian prices)
-    const res = await fetchWithTimeout(
-      'https://www.metals-api.com/api/latest?access_key=demo&base=INR&symbols=XAU,XAG'
-    )
+    // Most free metals APIs are unreliable, so we use a curated approach
+    // Try metals-api.com (Indian prices) with demo key
+    const metalsApiUrl = 'https://www.metals-api.com/api/latest?access_key=demo&base=INR&symbols=XAU,XAG'
+    const res = await fetchWithTimeout(metalsApiUrl)
 
     // If this doesn't work, return hardcoded recent approximate
     // This is intentional — gold price changes slowly and approximate is useful
@@ -568,10 +558,10 @@ export async function fetchIndiaNews(
     if (!itemMatches) return null
 
     for (const item of itemMatches.slice(0, 3)) {
-      const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)
-        ?? item.match(/<title>(.*?)<\/title>/)
-      const sourceMatch = item.match(/<source[^>]*>(.*?)<\/source>/)
-      const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/)
+      const titleMatch = /<title><!\[CDATA\[(.*?)\]\]><\/title>/.exec(item)
+        ?? /<title>(.*?)<\/title>/.exec(item)
+      const sourceMatch = /<source[^>]*>(.*?)<\/source>/.exec(item)
+      const dateMatch = /<pubDate>(.*?)<\/pubDate>/.exec(item)
 
       if (titleMatch) {
         items.push({
@@ -607,90 +597,83 @@ export interface LiveDataResult {
  * Detect what live data is needed from the query & module,
  * fetch it in parallel, and return a formatted context string.
  */
+type DataPromise = Promise<{ key: string; value: string | null; raw: Record<string, unknown> | null }>
+
+function collectWeatherPromise(query: string, lower: string): DataPromise | null {
+  const city = extractCityFromQuery(query)
+  const keywords = ['mausam', 'weather', 'barish', 'baarish', 'garmi', 'sardi', 'thand', 'dhoop', 'toofan', 'aandhi', 'temperature', 'temp']
+  if (!city || !keywords.some((kw) => lower.includes(kw))) return null
+  return fetchWeather(city).then((data) => ({
+    key: 'weather',
+    value: data ? formatWeatherContext(data) : null,
+    raw: data ? { ...data } : null,
+  }))
+}
+
+function collectMandiPromise(query: string, lower: string, moduleId: ModuleId): DataPromise | null {
+  const crop = extractCropFromQuery(query)
+  const keywords = ['mandi', 'rate', 'price', 'bhav', 'daam', 'keemat', 'bazaar']
+  if (!crop || !(keywords.some((kw) => lower.includes(kw)) || moduleId === 'agri')) return null
+  return fetchMandiPrices(crop).then((data) => ({
+    key: 'mandi',
+    value: data ? formatMandiContext(data) : null,
+    raw: data ? { prices: data } : null,
+  }))
+}
+
+function collectPincodePromise(query: string): DataPromise | null {
+  const pincode = extractPincodeFromQuery(query)
+  if (!pincode) return null
+  return fetchPincodeInfo(pincode).then((data) => ({
+    key: 'pincode',
+    value: data ? formatPincodeContext(data, pincode) : null,
+    raw: data ? { ...data } : null,
+  }))
+}
+
+function collectMetalPromise(lower: string, moduleId: ModuleId): DataPromise | null {
+  const keywords = ['gold', 'sona', 'silver', 'chandi', 'metal', 'heera', 'jewel']
+  if (!keywords.some((kw) => lower.includes(kw)) && !(moduleId === 'finance' && lower.includes('price'))) return null
+  return fetchMetalPrices().then((data) => ({
+    key: 'metals',
+    value: data ? formatMetalContext(data) : null,
+    raw: data ? { ...data } : null,
+  }))
+}
+
+function collectExamPromise(query: string, lower: string): DataPromise | null {
+  const keywords = ['exam', 'pariksha', 'jee', 'neet', 'cuet', 'ssc', 'upsc', 'gate', 'cat', 'ibps', 'rrb', 'nda', 'railway']
+  if (!keywords.some((kw) => lower.includes(kw))) return null
+  const exams = extractExamFromQuery(query)
+  if (exams.length === 0) return null
+  return Promise.resolve({
+    key: 'exam',
+    value: formatExamContext(exams),
+    raw: { exams },
+  })
+}
+
 export async function fetchLiveData(
   query: string,
   moduleId: ModuleId
 ): Promise<LiveDataResult> {
   const lower = query.toLowerCase()
-  const promises: Array<Promise<{ key: string; value: string | null; raw: Record<string, unknown> | null }>> = []
 
-  // Weather detection
-  const weatherCity = extractCityFromQuery(query)
-  const weatherKeywords = ['mausam', 'weather', 'barish', 'baarish', 'garmi', 'sardi', 'thand', 'dhoop', 'toofan', 'aandhi', 'temperature', 'temp']
-  const needsWeather = weatherCity && weatherKeywords.some((kw) => lower.includes(kw))
-  if (needsWeather && weatherCity) {
-    promises.push(
-      fetchWeather(weatherCity).then((data) => ({
-        key: 'weather',
-        value: data ? formatWeatherContext(data) : null,
-        raw: data as unknown as Record<string, unknown> | null,
-      }))
-    )
-  }
-
-  // Mandi price detection
-  const crop = extractCropFromQuery(query)
-  const mandiKeywords = ['mandi', 'rate', 'price', 'bhav', 'daam', 'keemat', 'bazaar']
-  const needsMandi = crop && (mandiKeywords.some((kw) => lower.includes(kw)) || moduleId === 'agri')
-  if (needsMandi && crop) {
-    promises.push(
-      fetchMandiPrices(crop).then((data) => ({
-        key: 'mandi',
-        value: data ? formatMandiContext(data) : null,
-        raw: data as unknown as Record<string, unknown> | null,
-      }))
-    )
-  }
-
-  // Pincode detection
-  const pincode = extractPincodeFromQuery(query)
-  if (pincode) {
-    promises.push(
-      fetchPincodeInfo(pincode).then((data) => ({
-        key: 'pincode',
-        value: data ? formatPincodeContext(data, pincode) : null,
-        raw: data as unknown as Record<string, unknown> | null,
-      }))
-    )
-  }
-
-  // Metal prices detection
-  const metalKeywords = ['gold', 'sona', 'silver', 'chandi', 'metal', 'heera', 'jewel']
-  const needsMetals = metalKeywords.some((kw) => lower.includes(kw)) || (moduleId === 'finance' && lower.includes('price'))
-  if (needsMetals) {
-    promises.push(
-      fetchMetalPrices().then((data) => ({
-        key: 'metals',
-        value: data ? formatMetalContext(data) : null,
-        raw: data as unknown as Record<string, unknown> | null,
-      }))
-    )
-  }
-
-  // Exam date detection
-  const examKeywords = ['exam', 'pariksha', 'jee', 'neet', 'cuet', 'ssc', 'upsc', 'gate', 'cat', 'ibps', 'rrb', 'nda', 'railway']
-  const needsExam = examKeywords.some((kw) => lower.includes(kw))
-  if (needsExam) {
-    const exams = extractExamFromQuery(query)
-    if (exams.length > 0) {
-      promises.push(
-        Promise.resolve({
-          key: 'exam',
-          value: formatExamContext(exams),
-          raw: { exams } as Record<string, unknown>,
-        })
-      )
-    }
-  }
-
-  // News — always try for relevant module context
-  promises.push(
+  const collectors: Array<DataPromise | null> = [
+    collectWeatherPromise(query, lower),
+    collectMandiPromise(query, lower, moduleId),
+    collectPincodePromise(query),
+    collectMetalPromise(lower, moduleId),
+    collectExamPromise(query, lower),
+    // News — always try for relevant module context
     fetchIndiaNews(moduleId).then((data) => ({
       key: 'news',
       value: data ? formatNewsContext(data) : null,
-      raw: data as unknown as Record<string, unknown> | null,
-    }))
-  )
+      raw: data ? { items: data } : null,
+    })),
+  ]
+
+  const promises = collectors.filter((p): p is DataPromise => p !== null)
 
   // Execute all in parallel
   const results = await Promise.allSettled(promises)
