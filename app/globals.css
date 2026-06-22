@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
 
 /* =====================================================
    BHARATOS — DESIGN SYSTEM
@@ -845,3 +845,4 @@ body {
 .welcome-subtitle {
   font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
 }
+
