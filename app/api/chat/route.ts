@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     if (!process.env.GEMINI_API_KEY) {
       return Response.json(
-        { error: 'API key configure nahi hai. Admin se contact karein.' },
+        { error: 'Gemini API key galat hai — .env.local check karo' },
         { status: 500 }
       )
     }
@@ -68,17 +68,56 @@ export async function POST(req: NextRequest) {
       piiWarnings: security.warnings,
     })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    // Log the exact error message
+    console.error('API route error caught:', error)
 
-    if (message.includes('API_KEY') || message.includes('GEMINI')) {
+    const message = error instanceof Error ? error.message : String(error)
+    const errLower = message.toLowerCase()
+
+    // If API key invalid
+    if (
+      errLower.includes('api_key_invalid') ||
+      errLower.includes('api key') ||
+      errLower.includes('invalid api key') ||
+      errLower.includes('key not configured') ||
+      errLower.includes('not found for api version') ||
+      errLower.includes('is not found')
+    ) {
       return Response.json(
-        { error: 'API configuration error. Please contact support.' },
-        { status: 500 }
+        { error: 'Gemini API key galat hai — .env.local check karo' },
+        { status: 400 }
+      )
+    }
+
+    // If quota exceeded
+    if (
+      errLower.includes('quota') ||
+      errLower.includes('429') ||
+      errLower.includes('resource_exhausted') ||
+      errLower.includes('exhausted')
+    ) {
+      return Response.json(
+        { error: 'Gemini free quota khatam ho gayi — kal try karo' },
+        { status: 429 }
+      )
+    }
+
+    // If network error
+    if (
+      errLower.includes('fetch failed') ||
+      errLower.includes('network') ||
+      errLower.includes('enotfound') ||
+      errLower.includes('connect') ||
+      errLower.includes('timeout')
+    ) {
+      return Response.json(
+        { error: 'Internet connection check karo' },
+        { status: 503 }
       )
     }
 
     return Response.json(
-      { error: 'Kuch gadbad ho gayi. Thodi der baad dobara try karein.' },
+      { error: `Kuch gadbad ho gayi. Thodi der baad dobara try karein. (${message})` },
       { status: 500 }
     )
   }

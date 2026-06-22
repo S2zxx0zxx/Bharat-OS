@@ -13,6 +13,7 @@ interface InputBarProps {
   readonly onVoiceInput?: () => void
   readonly isRecording?: boolean
   readonly hasMessages?: boolean
+  readonly language: 'hi' | 'en' | 'hin'
 }
 
 export function InputBar(props: Readonly<InputBarProps>) {
@@ -24,6 +25,7 @@ export function InputBar(props: Readonly<InputBarProps>) {
     onVoiceInput,
     isRecording = false,
     hasMessages = false,
+    language,
   } = props
 
   const [text, setText] = useState('')
@@ -62,9 +64,33 @@ export function InputBar(props: Readonly<InputBarProps>) {
   const boxShadowStyle = getBoxShadowStyle(isFocused, isRecording, text.length > 0, module.color)
   const counterClass = getCounterClass(text.length)
 
-  const placeholderText = isRecording
-    ? 'Bolna shuru karein (Awaaz sun rahe hain…)'
-    : `${module.name} se poochein… (Enter to send)`
+  let placeholderText = ''
+  if (isRecording) {
+    placeholderText = language === 'en'
+      ? 'Start speaking (Listening...)'
+      : 'Bolna shuru karein (Awaaz sun rahe hain…)'
+  } else {
+    if (language === 'hi') {
+      placeholderText = 'Hindi mein poochein...'
+    } else if (language === 'en') {
+      placeholderText = 'Ask your question...'
+    } else {
+      placeholderText = 'Sawaal poochiye...'
+    }
+  }
+
+  let hintText = ''
+  let newLineLabel = ''
+  if (language === 'hi') {
+    hintText = 'भेजने के लिए Enter दबाएं · '
+    newLineLabel = 'नया लाइन'
+  } else if (language === 'en') {
+    hintText = 'Press Enter to send · '
+    newLineLabel = 'new line'
+  } else {
+    hintText = 'Enter bhejne ke liye · '
+    newLineLabel = 'naya line'
+  }
 
   return (
     <div className="input-bar-wrapper">
@@ -140,7 +166,7 @@ export function InputBar(props: Readonly<InputBarProps>) {
         <div>
           {!hasMessages && (
             <p id="input-hint" className="input-hint" style={{ margin: 0 }}>
-              Enter bhejne ke liye · <kbd className="text-[10px] bg-gray-100 dark:bg-gray-800 border px-1 py-0.5 rounded">Shift+Enter</kbd> naya line
+              {hintText}<kbd className="text-[10px] bg-gray-100 dark:bg-gray-800 border px-1 py-0.5 rounded">Shift+Enter</kbd> {newLineLabel}
             </p>
           )}
         </div>

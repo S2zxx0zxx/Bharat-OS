@@ -47,6 +47,36 @@ function getLanguageLabel(l: 'hi' | 'en' | 'hin'): string {
   return 'Hin'
 }
 
+const translations = {
+  hi: {
+    welcomeSubtitle: (moduleName: string) => `नमस्ते! मैं आपका ${moduleName} असिस्टेंट हूँ। कोई भी सवाल हिंदी में पूछें।`,
+    quotaTitle: "आज की सीमा समाप्त हो गई",
+    quotaSub: "10 मुफ्त सवाल प्रतिदिन। कल वापस आएं या प्रो प्लान में अपग्रेड करें।",
+    thinking: "एआई सोच रहा है...",
+    listening: "आवाज़ सुन रहे हैं...",
+    voiceError: "आवाज़ समझ नहीं आई",
+    apiActive: (moduleName: string) => `${moduleName} सक्रिय`,
+  },
+  en: {
+    welcomeSubtitle: (moduleName: string) => `Hello! I am your ${moduleName} assistant. Feel free to ask any question in English.`,
+    quotaTitle: "Daily Limit Exceeded",
+    quotaSub: "10 free questions/day. Please return tomorrow or upgrade to Pro.",
+    thinking: "AI is thinking...",
+    listening: "Listening to voice...",
+    voiceError: "Could not understand voice",
+    apiActive: (moduleName: string) => `${moduleName} Active`,
+  },
+  hin: {
+    welcomeSubtitle: (moduleName: string) => `Namaste! Main aapka ${moduleName} assistant hoon. Koi bhi sawaal Hindi/Hinglish mein poochein.`,
+    quotaTitle: "Aaj ki limit khatam ho gayi",
+    quotaSub: "10 free sawaal/din. Kal wapas aao ya Pro plan upgrade karein.",
+    thinking: "AI soch raha hai...",
+    listening: "Awaaz sun rahe hain...",
+    voiceError: "Awaaz samajh nahi aayi",
+    apiActive: (moduleName: string) => `${moduleName} Active`,
+  }
+}
+
 // ── ChatInterface ────────────────────────────────────────────────
 export function ChatInterface() {
   const { activeModuleId, activeModule, allModules, switchModule } =
@@ -71,7 +101,7 @@ export function ChatInterface() {
     emoji: string
   }>({
     type: 'idle',
-    message: `${activeModule.name} Active`,
+    message: translations['hi'].apiActive(activeModule.name),
     emoji: activeModule.emoji,
   })
 
@@ -85,31 +115,23 @@ export function ChatInterface() {
     document.documentElement.classList.toggle('dark', darkMode)
   }, [darkMode])
 
-  // Keep island updated with active module
+  // Handle island state updates for active module, language, and loading transitions
   useEffect(() => {
-    setIslandState({
-      type: 'idle',
-      message: `${activeModule.name} Active`,
-      emoji: activeModule.emoji,
-    })
-  }, [activeModule])
-
-  // Handle AI Thinking / loading state in dynamic island
-  useEffect(() => {
+    const t = translations[language]
     if (isLoading) {
       setIslandState({
         type: 'thinking',
-        message: 'AI Soch Raha Hai...',
+        message: t.thinking,
         emoji: '⚡',
       })
     } else {
       setIslandState({
         type: 'idle',
-        message: `${activeModule.name} Active`,
+        message: t.apiActive(activeModule.name),
         emoji: activeModule.emoji,
       })
     }
-  }, [isLoading, activeModule])
+  }, [activeModule, language, isLoading])
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -160,14 +182,14 @@ export function ChatInterface() {
       return
     }
     const recognition = new SpeechRecognitionAPI()
-    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN'
+    recognition.lang = language === 'en' ? 'en-IN' : 'hi-IN'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     recognition.onstart = () => {
       setIsRecording(true)
       setIslandState({
         type: 'listening',
-        message: 'Awaaz sun rahe hain...',
+        message: translations[language].listening,
         emoji: '🎤',
       })
     }
@@ -189,13 +211,13 @@ export function ChatInterface() {
       setIsRecording(false)
       setIslandState({
         type: 'error',
-        message: 'Awaaz samajh nahi aayi',
+        message: translations[language].voiceError,
         emoji: '⚠️',
       })
       setTimeout(() => {
         setIslandState({
           type: 'idle',
-          message: `${activeModule.name} Active`,
+          message: translations[language].apiActive(activeModule.name),
           emoji: activeModule.emoji,
         })
       }, 3000)
@@ -297,7 +319,7 @@ export function ChatInterface() {
                 {activeModule.name} — {activeModule.description}
               </h1>
               <p className="welcome-subtitle">
-                Namaste! Main aapka {activeModule.name} assistant hoon. Koi bhi sawaal Hindi/Hinglish mein poochein.
+                {translations[language].welcomeSubtitle(activeModule.name)}
               </p>
             </div>
           </motion.div>
@@ -381,10 +403,10 @@ export function ChatInterface() {
             <Lock size={18} className="text-orange-600" />
             <div>
               <p className="quota-exceeded-title text-orange-950 font-bold">
-                Aaj ki limit khatam ho gayi
+                {translations[language].quotaTitle}
               </p>
               <p className="quota-exceeded-sub text-orange-900">
-                10 free sawaal/din. Kal wapas aao ya Pro plan upgrade karein.
+                {translations[language].quotaSub}
               </p>
             </div>
           </motion.div>
@@ -400,6 +422,7 @@ export function ChatInterface() {
           isLoading={isLoading}
           onVoiceInput={handleVoiceInput}
           isRecording={isRecording}
+          language={language}
         />
       </footer>
     </div>
