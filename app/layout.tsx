@@ -2,15 +2,20 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'BharatOS — India ka AI Life Assistant',
-  description: 'Legal help, Govt schemes, Health info, Finance guidance — sab Hindi mein, free mein. India ka pehla AI life OS.',
-  keywords: ['BharatOS', 'India AI', 'legal help Hindi', 'govt schemes', 'NyayBot'],
-  authors: [{ name: 'BharatOS Team' }],
+  title: 'BharatOS — India ka AI Life OS | Free Hindi AI Assistant',
+  description: 'Legal help, Govt schemes, Health info, Finance guidance — sab Hindi mein, bilkul free. India ka pehla AI Life Operating System.',
+  keywords: 'BharatOS, India AI, Hindi AI, legal help Hindi, govt schemes AI, NyayBot, JanSeva',
   openGraph: {
-    title: 'BharatOS — India ka AI',
-    description: 'Legal · Health · Govt · Finance — Hindi mein',
+    title: 'BharatOS — India ka AI Life OS',
+    description: 'Legal • Health • Govt • Finance — Hindi mein, Free mein',
     type: 'website',
+    url: 'https://bharat-os.vercel.app',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BharatOS — India ka AI',
+    description: 'Har Indian ka AI assistant — Hindi mein',
+  }
 }
 
 export const viewport: Viewport = {

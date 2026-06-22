@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { getModule, detectModuleFromKeywords, detectQueryTier } from '@/lib/modules'
 import { generateResponse } from '@/lib/gemini'
 import { securityCheck } from '@/lib/security'
-import { ModuleId, ApiChatRequest } from '@/types'
+import { fetchLiveData } from '@/lib/external-apis'
+import { ModuleId, ApiChatRequest, ExternalData } from '@/types'
 
 function sanitizeHistory(
   history: Array<{ role: string; content: string }>
@@ -51,9 +52,29 @@ export async function POST(req: NextRequest) {
     const module = getModule(activeModuleId)
     const tier = detectQueryTier(security.sanitizedQuery)
 
+    // Fetch live data in parallel with nothing blocking
+    let liveContext = ''
+    let externalData: ExternalData[] = []
+    try {
+      const liveResult = await fetchLiveData(
+        security.sanitizedQuery,
+        activeModuleId
+      )
+      liveContext = liveResult.context
+      externalData = liveResult.sources
+    } catch (liveError) {
+      // Live data is optional — log and continue
+      console.warn('Live data fetch failed (non-blocking):', liveError)
+    }
+
+    // Build the enriched query with live data context
+    const enrichedQuery = liveContext
+      ? `${liveContext}\n\n---\nUser ka sawaal: ${security.sanitizedQuery}\n\nUpar diya gaya LIVE DATA use karke jawab do. Agar data relevant hai toh include karo, warna ignore karo.`
+      : security.sanitizedQuery
+
     // Generate AI response
     const { text, tokensUsed } = await generateResponse(
-      security.sanitizedQuery,
+      enrichedQuery,
       module,
       sanitizeHistory(conversationHistory),
       tier
@@ -66,6 +87,7 @@ export async function POST(req: NextRequest) {
       tier,
       tokensUsed,
       piiWarnings: security.warnings,
+      externalData: externalData.length > 0 ? externalData : undefined,
     })
   } catch (error: unknown) {
     // Log the exact error message

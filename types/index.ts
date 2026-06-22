@@ -49,6 +49,12 @@ export interface ApiChatRequest {
   userId?: string
 }
 
+export interface ExternalData {
+  source: string
+  data: Record<string, unknown>
+  fetchedAt: string
+}
+
 export interface ApiChatResponse {
   response: string
   moduleId: ModuleId
@@ -56,6 +62,7 @@ export interface ApiChatResponse {
   tier: Tier
   tokensUsed: number
   piiWarnings?: string[]
+  externalData?: ExternalData[]
 }
 
 export interface SecurityCheckResult {
