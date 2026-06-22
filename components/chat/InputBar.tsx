@@ -25,11 +25,13 @@ export function InputBar({
   const [text, setText] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<any>(null)
 
   // Initialize Speech Recognition
   useEffect(() => {
+    setMounted(true)
     if (typeof window !== 'undefined') {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -116,7 +118,7 @@ export function InputBar({
   }
 
   const canSend = text.trim().length > 0 && !disabled && !isLoading
-  const hasVoiceSupport = typeof window !== 'undefined' && 
+  const hasVoiceSupport = mounted && typeof window !== 'undefined' && 
     (!!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition)
 
   return (

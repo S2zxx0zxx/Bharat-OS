@@ -940,7 +940,7 @@ body {
 /* Dynamic Island Floating Wrapper */
 .dynamic-island-wrapper {
   position: absolute;
-  top: calc(var(--header-h) + 12px);
+  top: 132px;
   left: 0;
   right: 0;
   display: flex;

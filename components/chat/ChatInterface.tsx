@@ -53,7 +53,7 @@ export function ChatInterface() {
   const [darkMode, setDarkMode] = useLocalStorage('bharatos-dark', false)
 
   // Dynamic Island State
-  const [islandState, setIslandState] = useState<{
+  const [islandState, setIsNavIslandState] = useState<{
     type: 'idle' | 'listening' | 'redacted' | 'warning' | 'error' | 'thinking'
     message: string
     emoji: string
@@ -75,7 +75,7 @@ export function ChatInterface() {
 
   // Keep island updated with active module
   useEffect(() => {
-    setIslandState({
+    setIsNavIslandState({
       type: 'idle',
       message: `${activeModule.name} Active`,
       emoji: activeModule.emoji,
@@ -85,13 +85,13 @@ export function ChatInterface() {
   // Handle AI Thinking / loading state in dynamic island
   useEffect(() => {
     if (isLoading) {
-      setIslandState({
+      setIsNavIslandState({
         type: 'thinking',
         message: 'AI Soch Raha Hai...',
         emoji: '⚡',
       })
     } else {
-      setIslandState({
+      setIsNavIslandState({
         type: 'idle',
         message: `${activeModule.name} Active`,
         emoji: activeModule.emoji,
@@ -106,14 +106,14 @@ export function ChatInterface() {
       // Client-side PII check to trigger Dynamic Island alert
       const secCheck = securityCheck(text)
       if (secCheck.hasPII) {
-        setIslandState({
+        setIsNavIslandState({
           type: 'redacted',
           message: 'Privacy Secured: PII Redacted!',
           emoji: '🔒',
         })
         // Return island to active module state after 4.5 seconds
         setTimeout(() => {
-          setIslandState({
+          setIsNavIslandState({
             type: 'idle',
             message: `${activeModule.name} Active`,
             emoji: activeModule.emoji,
@@ -139,19 +139,19 @@ export function ChatInterface() {
 
   const handleSpeechState = useCallback((state: 'listening' | 'idle' | 'error', transcript?: string) => {
     if (state === 'listening') {
-      setIslandState({
+      setIsNavIslandState({
         type: 'listening',
         message: 'Awaaz sun rahe hain...',
         emoji: '🎤',
       })
     } else if (state === 'error') {
-      setIslandState({
+      setIsNavIslandState({
         type: 'error',
         message: 'Awaaz samajh nahi aayi',
         emoji: '⚠️',
       })
       setTimeout(() => {
-        setIslandState({
+        setIsNavIslandState({
           type: 'idle',
           message: `${activeModule.name} Active`,
           emoji: activeModule.emoji,
@@ -159,13 +159,13 @@ export function ChatInterface() {
       }, 3000)
     } else if (state === 'idle') {
       if (transcript) {
-        setIslandState({
+        setIsNavIslandState({
           type: 'thinking',
           message: `Suna: "${transcript.substring(0, 20)}..."`,
           emoji: '💬',
         })
       } else {
-        setIslandState({
+        setIsNavIslandState({
           type: 'idle',
           message: `${activeModule.name} Active`,
           emoji: activeModule.emoji,
@@ -188,177 +188,176 @@ export function ChatInterface() {
         style={{ background: activeModule.color }} 
       />
 
-      <div className="flex flex-col h-full w-full z-10 relative">
-        <Header
-          quota={quota}
-          darkMode={darkMode}
-          onToggleDark={() => setDarkMode((d) => !d)}
-          activeModule={activeModule}
-        />
+      <Header
+        quota={quota}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode((d) => !d)}
+        activeModule={activeModule}
+      />
 
-        {/* Module tabs */}
-        <nav className="module-tabs-nav" aria-label="BharatOS modules">
-          <div className="module-tabs-scroll">
-            {allModules.map((module) => (
-              <ModuleTab
-                key={module.id}
-                module={module}
-                isActive={module.id === activeModuleId}
-                onClick={handleModuleSwitch}
-              />
-            ))}
-          </div>
-        </nav>
-
-        {/* Dynamic Island Notification Pill */}
-        <div className="dynamic-island-wrapper z-40">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${islandState.type}-${islandState.message}`}
-              layoutId="dynamic-island-pill"
-              initial={{ scale: 0.85, y: -20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: -20, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className={`dynamic-island island-${islandState.type}`}
-            >
-              <span className="island-emoji animate-bounce">{islandState.emoji}</span>
-              <span className="island-message">{islandState.message}</span>
-            </motion.div>
-          </AnimatePresence>
+      {/* Module tabs */}
+      <nav className="module-tabs-nav z-10 relative" aria-label="BharatOS modules">
+        <div className="module-tabs-scroll">
+          {allModules.map((module) => (
+            <ModuleTab
+              key={module.id}
+              module={module}
+              isActive={module.id === activeModuleId}
+              onClick={handleModuleSwitch}
+            />
+          ))}
         </div>
+      </nav>
 
-        {/* Welcome banner */}
+      {/* Dynamic Island Notification Pill */}
+      <div className="dynamic-island-wrapper z-40">
         <AnimatePresence mode="wait">
-          {showSuggestions && (
-            <motion.div
-              key={`welcome-${activeModuleId}`}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="welcome-banner"
-              style={{
-                background: `linear-gradient(135deg, ${activeModule.colorLight}, white)`,
-                borderColor: `${activeModule.color}30`,
-              }}
-            >
-              <div className="welcome-emoji animate-pulse" aria-hidden="true">
-                {activeModule.emoji}
-              </div>
-              <div>
-                <h1
-                  className="welcome-title"
-                  style={{ color: activeModule.color }}
-                >
-                  {activeModule.name} — {activeModule.description}
-                </h1>
-                <p className="welcome-subtitle">
-                  Namaste! Main aapka {activeModule.name} assistant hoon. Koi bhi sawaal Hindi/Hinglish mein poochein.
-                </p>
-              </div>
-            </motion.div>
-          )}
+          <motion.div
+            key={`${islandState.type}-${islandState.message}`}
+            layoutId="dynamic-island-pill"
+            initial={{ scale: 0.85, y: -20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.85, y: -20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className={`dynamic-island island-${islandState.type}`}
+          >
+            <span className="island-emoji animate-bounce">{islandState.emoji}</span>
+            <span className="island-message">{islandState.message}</span>
+          </motion.div>
         </AnimatePresence>
-
-        {/* Messages area */}
-        <main
-          id="messages-area"
-          className="messages-area"
-          aria-live="polite"
-          aria-label="Chat messages"
-        >
-          <AnimatePresence>
-            {messages.map((message) =>
-              message.isLoading ? null : (
-                <MessageBubble key={message.id} message={message} />
-              )
-            )}
-
-            {isLoading && (
-              <TypingIndicator key="typing" moduleColor={activeModule.color} />
-            )}
-          </AnimatePresence>
-
-          {/* Error display */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="error-banner"
-                role="alert"
-              >
-                <AlertCircle size={16} />
-                <span>{error}</span>
-                <button
-                  onClick={() => lastQueryRef.current && handleSend(lastQueryRef.current)}
-                  className="error-retry-btn"
-                  aria-label="Retry"
-                >
-                  <RefreshCw size={14} />
-                  Retry
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div ref={messagesEndRef} />
-        </main>
-
-        {/* Suggestions */}
-        <AnimatePresence>
-          {showSuggestions && (
-            <motion.div
-              key={`suggestions-${activeModuleId}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <SuggestionChips
-                module={activeModule}
-                onSelect={handleSend}
-                disabled={isExceeded}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Quota exceeded banner */}
-        <AnimatePresence>
-          {isExceeded && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="quota-exceeded-banner"
-            >
-              <Lock size={18} className="text-orange-600" />
-              <div>
-                <p className="quota-exceeded-title text-orange-950 font-bold">
-                  Aaj ki limit khatam ho gayi
-                </p>
-                <p className="quota-exceeded-sub text-orange-900">
-                  10 free sawaal/din. Kal wapas aao ya Pro plan upgrade karein.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Input bar */}
-        <footer className="input-footer" role="contentinfo">
-          <InputBar
-            module={activeModule}
-            onSend={handleSend}
-            disabled={isExceeded || isLoading}
-            isLoading={isLoading}
-            hasMessages={messages.length > 0}
-            onSpeechStateChange={handleSpeechState}
-          />
-        </footer>
       </div>
+
+      {/* Welcome banner */}
+      <AnimatePresence mode="wait">
+        {showSuggestions && (
+          <motion.div
+            key={`welcome-${activeModuleId}`}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="welcome-banner z-10 relative"
+            style={{
+              background: `linear-gradient(135deg, ${activeModule.colorLight}, white)`,
+              borderColor: `${activeModule.color}30`,
+            }}
+          >
+            <div className="welcome-emoji animate-pulse" aria-hidden="true">
+              {activeModule.emoji}
+            </div>
+            <div>
+              <h1
+                className="welcome-title"
+                style={{ color: activeModule.color }}
+              >
+                {activeModule.name} — {activeModule.description}
+              </h1>
+              <p className="welcome-subtitle">
+                Namaste! Main aapka {activeModule.name} assistant hoon. Koi bhi sawaal Hindi/Hinglish mein poochein.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Messages area */}
+      <main
+        id="messages-area"
+        className="messages-area z-10 relative"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
+        <AnimatePresence>
+          {messages.map((message) =>
+            message.isLoading ? null : (
+              <MessageBubble key={message.id} message={message} />
+            )
+          )}
+
+          {isLoading && (
+            <TypingIndicator key="typing" moduleColor={activeModule.color} />
+          )}
+        </AnimatePresence>
+
+        {/* Error display */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="error-banner"
+              role="alert"
+            >
+              <AlertCircle size={16} />
+              <span>{error}</span>
+              <button
+                onClick={() => lastQueryRef.current && handleSend(lastQueryRef.current)}
+                className="error-retry-btn"
+                aria-label="Retry"
+              >
+                <RefreshCw size={14} />
+                Retry
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div ref={messagesEndRef} />
+      </main>
+
+      {/* Suggestions */}
+      <AnimatePresence>
+        {showSuggestions && (
+          <motion.div
+            key={`suggestions-${activeModuleId}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="z-10 relative"
+          >
+            <SuggestionChips
+              module={activeModule}
+              onSelect={handleSend}
+              disabled={isExceeded}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quota exceeded banner */}
+      <AnimatePresence>
+        {isExceeded && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="quota-exceeded-banner z-10 relative"
+          >
+            <Lock size={18} className="text-orange-600" />
+            <div>
+              <p className="quota-exceeded-title text-orange-950 font-bold">
+                Aaj ki limit khatam ho gayi
+              </p>
+              <p className="quota-exceeded-sub text-orange-900">
+                10 free sawaal/din. Kal wapas aao ya Pro plan upgrade karein.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Input bar */}
+      <footer className="input-footer z-10 relative" role="contentinfo">
+        <InputBar
+          module={activeModule}
+          onSend={handleSend}
+          disabled={isExceeded || isLoading}
+          isLoading={isLoading}
+          hasMessages={messages.length > 0}
+          onSpeechStateChange={handleSpeechState}
+        />
+      </footer>
     </div>
   )
 }
