@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, KeyboardEvent, useEffect } from 'react'
+import { useState, useRef, useCallback, KeyboardEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Mic, MicOff } from 'lucide-react'
 import { Module } from '@/types'
@@ -8,71 +8,25 @@ import { Module } from '@/types'
 interface InputBarProps {
   module: Module
   onSend: (text: string) => void
-  disabled?: boolean
-  isLoading?: boolean
+  disabled: boolean
+  isLoading: boolean
+  onVoiceInput?: () => void
+  isRecording?: boolean
   hasMessages?: boolean
-  onSpeechStateChange?: (state: 'listening' | 'idle' | 'error', transcript?: string) => void
 }
 
 export function InputBar({
   module,
   onSend,
-  disabled = false,
-  isLoading = false,
+  disabled,
+  isLoading,
+  onVoiceInput,
+  isRecording = false,
   hasMessages = false,
-  onSpeechStateChange,
 }: InputBarProps) {
   const [text, setText] = useState('')
   const [isFocused, setIsFocused] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const recognitionRef = useRef<any>(null)
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition()
-        recognition.continuous = false
-        recognition.interimResults = false
-        recognition.lang = 'hi-IN' // Hindi / Hinglish voice matching
-
-        recognition.onstart = () => {
-          setIsListening(true)
-          if (onSpeechStateChange) onSpeechStateChange('listening')
-        }
-
-        recognition.onend = () => {
-          setIsListening(false)
-          if (onSpeechStateChange) onSpeechStateChange('idle')
-        }
-
-        recognition.onerror = () => {
-          setIsListening(false)
-          if (onSpeechStateChange) onSpeechStateChange('error')
-        }
-
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript
-          if (transcript) {
-            setText((prev) => {
-              const updated = prev ? `${prev} ${transcript}` : transcript
-              // Trigger auto-resize after appending speech text
-              setTimeout(handleInput, 50);
-              return updated
-            })
-            if (onSpeechStateChange) onSpeechStateChange('idle', transcript)
-          }
-        }
-
-        recognitionRef.current = recognition
-      }
-    }
-  }, [onSpeechStateChange])
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim()
@@ -101,25 +55,7 @@ export function InputBar({
     ta.style.height = `${Math.min(ta.scrollHeight, 140)}px`
   }
 
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert('Aapke browser mein voice typing support nahi hai. Google Chrome use karein.')
-      return
-    }
-    if (isListening) {
-      recognitionRef.current.stop()
-    } else {
-      try {
-        recognitionRef.current.start()
-      } catch {
-        // Recognition already started or starting
-      }
-    }
-  }
-
   const canSend = text.trim().length > 0 && !disabled && !isLoading
-  const hasVoiceSupport = mounted && typeof window !== 'undefined' && 
-    (!!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition)
 
   return (
     <div className="input-bar-wrapper">
@@ -128,7 +64,7 @@ export function InputBar({
         style={{
           boxShadow: isFocused
             ? `0 0 0 2px ${module.color}, 0 8px 32px rgba(0,0,0,0.12)`
-            : isListening
+            : isRecording
             ? '0 0 0 2px #EF4444, 0 8px 32px rgba(239, 68, 68, 0.2)'
             : text
             ? `0 0 0 2px ${module.color}40, 0 4px 16px rgba(0,0,0,0.06)`
@@ -145,11 +81,11 @@ export function InputBar({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={
-            isListening
+            isRecording
               ? 'Bolna shuru karein (Awaaz sun rahe hain…)'
               : `${module.name} se poochein… (Enter to send)`
           }
-          disabled={disabled || isListening}
+          disabled={disabled || isRecording}
           maxLength={1000}
           rows={1}
           className="input-textarea"
@@ -158,24 +94,21 @@ export function InputBar({
         />
 
         <div className="input-actions">
-          {hasVoiceSupport && (
-            <motion.button
-              type="button"
-              onClick={toggleListening}
-              className={`input-mic-btn ${isListening ? 'listening-active' : ''}`}
-              animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
-              transition={isListening ? { repeat: Infinity, duration: 1.2 } : {}}
-              aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-              style={{
-                color: isListening ? '#EF4444' : '#64748B',
-                cursor: 'pointer',
-                opacity: 1,
-              }}
-              title={isListening ? 'Stop voice typing' : 'Voice typing in Hindi'}
-            >
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-            </motion.button>
+          {text.length > 80 && (
+            <span className={`char-counter ${text.length > 400 ? 'danger' : text.length > 250 ? 'warning' : ''}`}>
+              {text.length}/1000
+            </span>
           )}
+
+          <button
+            type="button"
+            className={`input-mic-btn ${isRecording ? 'recording' : ''}`}
+            onClick={onVoiceInput}
+            aria-label={isRecording ? 'Recording...' : 'Voice input'}
+            title={isRecording ? 'Bol raha hoon...' : 'Bolo apna sawaal'}
+          >
+            {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
 
           <AnimatePresence>
             <motion.button
@@ -214,11 +147,6 @@ export function InputBar({
             </p>
           )}
         </div>
-        {text.length > 100 && (
-          <span className="character-counter text-gray-500 font-mono ml-auto">
-            {text.length} / 1000
-          </span>
-        )}
       </div>
     </div>
   )

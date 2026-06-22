@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MessageCircle } from 'lucide-react'
 import { Module } from '@/types'
 
 interface SuggestionChipsProps {
@@ -21,35 +20,20 @@ export function SuggestionChips({
         <span>✨ Ye pooch sakte hain:</span>
       </p>
       <div className="suggestions-grid">
-        {module.suggestions.map((suggestion, i) => (
+        {module.suggestions.map((suggestion, index) => (
           <motion.button
-            key={`${module.id}-${suggestion.slice(0, 30)}`}
-            id={`suggestion-${module.id}-${i}`}
+            key={index}
+            className="suggestion-chip"
+            style={{ borderLeftColor: module.color }}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.08, duration: 0.22, ease: [0, 0, 0.2, 1] }}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => !disabled && onSelect(suggestion)}
             disabled={disabled}
-            initial={{ opacity: 0, x: -15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.08, type: 'spring', stiffness: 260, damping: 20 }}
-            whileHover={
-              disabled
-                ? {}
-                : {
-                    x: 4,
-                    borderLeftWidth: '7px',
-                    scale: 1.01,
-                  }
-            }
-            whileTap={disabled ? {} : { scale: 0.98 }}
-            className="suggestion-chip bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm rounded-xl p-4 flex items-start gap-3 text-left w-full cursor-pointer hover:shadow-md transition-shadow"
-            style={{
-              borderLeftColor: module.color,
-              borderLeftWidth: '4px',
-              borderLeftStyle: 'solid',
-            }}
           >
-            <span className="suggestion-chip-icon" style={{ color: module.color }}>
-              💬
-            </span>
+            <span className="suggestion-chip-icon">💬</span>
             <span className="suggestion-chip-text">{suggestion}</span>
           </motion.button>
         ))}

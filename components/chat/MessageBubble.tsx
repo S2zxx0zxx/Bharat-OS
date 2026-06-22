@@ -66,6 +66,21 @@ function formatInline(text: string): React.ReactNode {
     const formatted = subParts.map((sub, sIdx) => {
       if (sub.type === 'link') {
         const url = sub.text.startsWith('http') ? sub.text : `https://${sub.text}`
+        const isGov = sub.text.includes('.gov.in') || sub.text.includes('.nic.in')
+        if (isGov) {
+          return (
+            <a
+              key={`link-${index}-${sIdx}`}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="portal-card"
+            >
+              <span>🏛️ {sub.text}</span>
+              <span>→</span>
+            </a>
+          )
+        }
         return (
           <a
             key={`link-${index}-${sIdx}`}
@@ -78,15 +93,13 @@ function formatInline(text: string): React.ReactNode {
           </a>
         )
       } else if (sub.type === 'helpline') {
-        const cleanedPhone = sub.text.replace(/-/g, '')
         return (
           <a
             key={`help-${index}-${sIdx}`}
-            href={`tel:${cleanedPhone}`}
-            className="bg-orange-100 dark:bg-orange-950/50 hover:bg-orange-200 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 font-mono px-2.5 py-1 rounded-md text-xs border border-orange-200 dark:border-orange-900/50 inline-flex items-center gap-1 font-bold transition-colors my-1 no-underline"
+            href={`tel:${sub.text.replace(/-/g, '')}`}
+            className="helpline-call-btn"
           >
-            <PhoneCall size={10} />
-            {sub.text} (Call Now)
+            📞 {sub.text}
           </a>
         )
       } else {
@@ -204,96 +217,67 @@ function formatContent(content: string): React.ReactNode {
   flushList('end')
   return elements
 }
+function EMIWidget({ moduleColor }: { moduleColor: string }) {
+  const [loan, setLoan] = useState(500000)
+  const [rate, setRate] = useState(8.5)
+  const [tenure, setTenure] = useState(20)
 
-function EMICalculator() {
-  const [amount, setAmount] = useState(1000000)
-  const [rate, setRate] = useState(9.5)
-  const [tenure, setTenure] = useState(15)
-
-  const p = amount
-  const r = rate / 12 / 100
+  const p = loan
+  const r = rate / 1200
   const n = tenure * 12
-
   const emi = Math.round((p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1))
-  const totalPayment = emi * n
-  const totalInterest = totalPayment - p
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 my-3 bg-white/90 dark:bg-gray-950/90 shadow-lg backdrop-blur-md max-w-sm"
-    >
-      <div className="flex items-center gap-2 mb-3 text-purple-700 dark:text-purple-400 font-bold text-xs uppercase tracking-wider">
-        <Calculator size={16} />
-        <span>EMI Calculator Widget</span>
-      </div>
-
-      <div className="space-y-3.5">
+    <div className="widget-card">
+      <div className="widget-title">💰 EMI Calculator</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
-          <div className="flex justify-between text-xs font-semibold mb-1">
-            <span>Loan Amount</span>
-            <span className="text-purple-600">₹{amount.toLocaleString('en-IN')}</span>
-          </div>
+          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            Loan: ₹{loan.toLocaleString('en-IN')}
+          </label>
           <input
             type="range"
-            min="100000"
-            max="10000000"
-            step="100000"
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            min={100000}
+            max={10000000}
+            step={50000}
+            value={loan}
+            onChange={(e) => setLoan(+e.target.value)}
           />
         </div>
-
         <div>
-          <div className="flex justify-between text-xs font-semibold mb-1">
-            <span>Interest Rate (%)</span>
-            <span className="text-purple-600">{rate}%</span>
-          </div>
+          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            Interest: {rate}% p.a.
+          </label>
           <input
             type="range"
-            min="5"
-            max="20"
-            step="0.1"
+            min={6}
+            max={20}
+            step={0.1}
             value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            onChange={(e) => setRate(+e.target.value)}
           />
         </div>
-
         <div>
-          <div className="flex justify-between text-xs font-semibold mb-1">
-            <span>Tenure (Years)</span>
-            <span className="text-purple-600">{tenure} Yrs</span>
-          </div>
+          <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            Tenure: {tenure} years
+          </label>
           <input
             type="range"
-            min="1"
-            max="30"
-            step="1"
+            min={1}
+            max={30}
+            step={1}
             value={tenure}
-            onChange={(e) => setTenure(Number(e.target.value))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            onChange={(e) => setTenure(+e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-150 dark:border-gray-800 text-center">
         <div>
-          <p className="text-[10px] text-gray-500 font-medium">Monthly EMI</p>
-          <p className="text-xs font-bold text-purple-700 dark:text-purple-400">₹{emi.toLocaleString('en-IN')}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-gray-500 font-medium">Total Interest</p>
-          <p className="text-xs font-bold text-gray-600 dark:text-gray-400">₹{totalInterest.toLocaleString('en-IN')}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-gray-500 font-medium">Total Payment</p>
-          <p className="text-xs font-bold text-gray-800 dark:text-white">₹{totalPayment.toLocaleString('en-IN')}</p>
+          <div className="widget-result" style={{ color: moduleColor }}>
+            ₹{emi.toLocaleString('en-IN')}
+          </div>
+          <div className="widget-label">Monthly EMI</div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -413,18 +397,17 @@ export function MessageBubble({ message }: Readonly<{ message: Message }>) {
     }
   }, [message.content, isUser])
 
-  const handleSpeech = () => {
+  const handleTTS = (text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       if (isPlaying) {
         window.speechSynthesis.cancel()
         setIsPlaying(false)
       } else {
         window.speechSynthesis.cancel()
-        const cleanText = message.content
-          .replace(/\*\*?/g, '')
-          .replace(/\[[^\]]+\]/g, '')
+        const cleanText = text.replace(/[⚠️✅📞]/g, '')
         const utterance = new SpeechSynthesisUtterance(cleanText)
         utterance.lang = 'hi-IN'
+        utterance.rate = 0.9
 
         const voices = window.speechSynthesis.getVoices()
         const hindiVoice = voices.find(
@@ -475,15 +458,6 @@ export function MessageBubble({ message }: Readonly<{ message: Message }>) {
                 </span>
               )}
             </div>
-
-            <button
-              onClick={handleSpeech}
-              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              title={isPlaying ? 'Mute' : 'Listen Answer'}
-              aria-label={isPlaying ? 'Mute audio reader' : 'Listen to response'}
-            >
-              {isPlaying ? <VolumeX size={13} /> : <Volume2 size={13} />}
-            </button>
           </div>
         )}
 
@@ -501,9 +475,19 @@ export function MessageBubble({ message }: Readonly<{ message: Message }>) {
         </div>
 
         <AnimatePresence>
-          {showEMI && <EMICalculator key="emi-calc" />}
+          {showEMI && <EMIWidget key="emi-calc" moduleColor={module.color} />}
           {showSIP && <SIPCalculator key="sip-calc" />}
         </AnimatePresence>
+
+        {message.role === 'assistant' && !message.isLoading && (
+          <button
+            className={`tts-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={() => handleTTS(message.content)}
+            title="Sunein"
+          >
+            {isPlaying ? '🔇 Band Karein' : '🔊 Sunein'}
+          </button>
+        )}
 
         <span className="message-timestamp">{timeStr}</span>
       </div>

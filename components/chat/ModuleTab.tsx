@@ -19,16 +19,16 @@ export function ModuleTab({ module, isActive, onClick }: Readonly<ModuleTabProps
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
       className={`module-tab ${isActive ? 'module-tab-active text-white' : 'module-tab-inactive'}`}
-      style={{
-        transition: 'color 200ms ease, background-color 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
-        ...(isActive
+      style={
+        isActive
           ? {
-              background: module.gradient,
-              boxShadow: `0 4px 16px ${module.color}40`,
+              background: `linear-gradient(135deg, ${module.color}, ${module.colorDark})`,
+              boxShadow: `0 4px 20px ${module.color}40, 0 2px 8px ${module.color}25`,
+              transform: 'translateY(-2px)',
               color: '#FFFFFF',
             }
-          : {}),
-      }}
+          : {}
+      }
       aria-pressed={isActive}
       aria-label={`Switch to ${module.name} — ${module.description}`}
     >

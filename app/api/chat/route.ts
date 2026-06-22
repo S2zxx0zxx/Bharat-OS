@@ -18,6 +18,13 @@ function sanitizeHistory(
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      return Response.json(
+        { error: 'API key configure nahi hai. Admin se contact karein.' },
+        { status: 500 }
+      )
+    }
+
     const body: ApiChatRequest = await req.json()
     const { query, moduleId, conversationHistory = [] } = body
 

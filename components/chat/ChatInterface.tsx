@@ -52,8 +52,14 @@ export function ChatInterface() {
   const lastQueryRef = useRef<string>('')
   const [darkMode, setDarkMode] = useLocalStorage('bharatos-dark', false)
 
+  // Upgraded States for Phase 3 Component 1
+  const [ambientColor, setAmbientColor] = useState('#7C3AED')
+  const [isRecording, setIsRecording] = useState(false)
+  const [language, setLanguage] = useState<'hi' | 'en' | 'hin'>('hi')
+  const recognitionRef = useRef<any>(null)
+
   // Dynamic Island State
-  const [islandState, setIsNavIslandState] = useState<{
+  const [islandState, setIslandState] = useState<{
     type: 'idle' | 'listening' | 'redacted' | 'warning' | 'error' | 'thinking'
     message: string
     emoji: string
@@ -75,7 +81,7 @@ export function ChatInterface() {
 
   // Keep island updated with active module
   useEffect(() => {
-    setIsNavIslandState({
+    setIslandState({
       type: 'idle',
       message: `${activeModule.name} Active`,
       emoji: activeModule.emoji,
@@ -85,13 +91,13 @@ export function ChatInterface() {
   // Handle AI Thinking / loading state in dynamic island
   useEffect(() => {
     if (isLoading) {
-      setIsNavIslandState({
+      setIslandState({
         type: 'thinking',
         message: 'AI Soch Raha Hai...',
         emoji: '⚡',
       })
     } else {
-      setIsNavIslandState({
+      setIslandState({
         type: 'idle',
         message: `${activeModule.name} Active`,
         emoji: activeModule.emoji,
@@ -106,14 +112,14 @@ export function ChatInterface() {
       // Client-side PII check to trigger Dynamic Island alert
       const secCheck = securityCheck(text)
       if (secCheck.hasPII) {
-        setIsNavIslandState({
+        setIslandState({
           type: 'redacted',
           message: 'Privacy Secured: PII Redacted!',
           emoji: '🔒',
         })
         // Return island to active module state after 4.5 seconds
         setTimeout(() => {
-          setIsNavIslandState({
+          setIslandState({
             type: 'idle',
             message: `${activeModule.name} Active`,
             emoji: activeModule.emoji,
@@ -133,59 +139,74 @@ export function ChatInterface() {
     (id: ModuleId) => {
       switchModule(id)
       clearMessages()
+      const mod = allModules.find((m) => m.id === id)
+      if (mod) setAmbientColor(mod.color)
     },
-    [switchModule, clearMessages]
+    [switchModule, clearMessages, allModules]
   )
 
-  const handleSpeechState = useCallback((state: 'listening' | 'idle' | 'error', transcript?: string) => {
-    if (state === 'listening') {
-      setIsNavIslandState({
+  const handleVoiceInput = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) {
+      alert('Aapka browser voice input support nahi karta')
+      return
+    }
+    const recognition = new SpeechRecognitionAPI()
+    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.onstart = () => {
+      setIsRecording(true)
+      setIslandState({
         type: 'listening',
         message: 'Awaaz sun rahe hain...',
         emoji: '🎤',
       })
-    } else if (state === 'error') {
-      setIsNavIslandState({
+    }
+    recognition.onend = () => {
+      setIsRecording(false)
+    }
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript
+      if (transcript.trim()) {
+        setIslandState({
+          type: 'thinking',
+          message: `Suna: "${transcript.substring(0, 20)}..."`,
+          emoji: '💬',
+        })
+        handleSend(transcript.trim())
+      }
+    }
+    recognition.onerror = () => {
+      setIsRecording(false)
+      setIslandState({
         type: 'error',
         message: 'Awaaz samajh nahi aayi',
         emoji: '⚠️',
       })
       setTimeout(() => {
-        setIsNavIslandState({
+        setIslandState({
           type: 'idle',
           message: `${activeModule.name} Active`,
           emoji: activeModule.emoji,
         })
       }, 3000)
-    } else if (state === 'idle') {
-      if (transcript) {
-        setIsNavIslandState({
-          type: 'thinking',
-          message: `Suna: "${transcript.substring(0, 20)}..."`,
-          emoji: '💬',
-        })
-      } else {
-        setIsNavIslandState({
-          type: 'idle',
-          message: `${activeModule.name} Active`,
-          emoji: activeModule.emoji,
-        })
-      }
     }
-  }, [activeModule])
+    recognitionRef.current = recognition
+    recognition.start()
+  }, [language, handleSend, activeModule])
 
   const showSuggestions = messages.length === 0 && !isLoading
 
   return (
     <div className={`chat-root relative overflow-hidden ${darkMode ? 'dark' : ''}`}>
       {/* Ambient background glows for 10x aesthetics */}
-      <div 
-        className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full blur-[130px] opacity-25 dark:opacity-20 pointer-events-none transition-all duration-700 select-none z-0" 
-        style={{ background: activeModule.color }} 
-      />
-      <div 
-        className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[50%] rounded-full blur-[130px] opacity-20 dark:opacity-15 pointer-events-none transition-all duration-700 select-none z-0" 
-        style={{ background: activeModule.color }} 
+      <div
+        className="ambient-glow"
+        style={{ background: ambientColor }}
+        aria-hidden="true"
       />
 
       <Header
@@ -193,6 +214,19 @@ export function ChatInterface() {
         darkMode={darkMode}
         onToggleDark={() => setDarkMode((d) => !d)}
         activeModule={activeModule}
+        languageToggle={
+          <div className="lang-toggle">
+            {(['hi', 'en', 'hin'] as const).map((l) => (
+              <button
+                key={l}
+                className={`lang-btn ${language === l ? 'active' : ''}`}
+                onClick={() => setLanguage(l)}
+              >
+                {l === 'hi' ? 'हिं' : l === 'en' ? 'EN' : 'Hin'}
+              </button>
+            ))}
+          </div>
+        }
       />
 
       {/* Module tabs */}
@@ -354,8 +388,8 @@ export function ChatInterface() {
           onSend={handleSend}
           disabled={isExceeded || isLoading}
           isLoading={isLoading}
-          hasMessages={messages.length > 0}
-          onSpeechStateChange={handleSpeechState}
+          onVoiceInput={handleVoiceInput}
+          isRecording={isRecording}
         />
       </footer>
     </div>

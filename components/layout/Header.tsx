@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { motion } from 'framer-motion'
 import { Moon, Sun, Zap } from 'lucide-react'
 import { QuotaState, Module } from '@/types'
@@ -9,6 +10,7 @@ interface HeaderProps {
   readonly darkMode: boolean
   readonly onToggleDark: () => void
   readonly activeModule?: Module
+  readonly languageToggle?: React.ReactNode
 }
 
 function getQuotaColor(remaining: number): string {
@@ -17,7 +19,13 @@ function getQuotaColor(remaining: number): string {
   return '#DC2626'
 }
 
-export function Header({ quota, darkMode, onToggleDark, activeModule }: Readonly<HeaderProps>) {
+export function Header({
+  quota,
+  darkMode,
+  onToggleDark,
+  activeModule,
+  languageToggle,
+}: Readonly<HeaderProps>) {
   const quotaPercent = Math.round(
     ((quota.limit - quota.remaining) / quota.limit) * 100
   )
@@ -68,6 +76,9 @@ export function Header({ quota, darkMode, onToggleDark, activeModule }: Readonly
               <span>{activeModule.name}</span>
             </motion.div>
           )}
+
+          {/* Language Toggle Slot (Phase 3 Component 6) */}
+          {languageToggle}
 
           {/* Quota badge */}
           <motion.div
