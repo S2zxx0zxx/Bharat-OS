@@ -12,32 +12,57 @@ interface Token {
 }
 
 function tokenizeText(text: string): Token[] {
-  const combinedRegex = /(https?:\/\/\S+|[a-zA-Z0-9.-]+\.(?:gov\.in|ac\.in|com|org|net)(?:\/\S*)?|1800-\d{2,3}-\d{3,4}|181|108|102|100)/gi
+  const matches: { start: number; end: number; type: 'link' | 'helpline'; value: string }[] = []
+  
+  const linkRegex = /https?:\/\/\S+|[a-z0-9.-]+\.(?:gov\.in|ac\.in|com|org|net)(?:\/\S*)?/gi
+  let match: RegExpExecArray | null
+  while ((match = linkRegex.exec(text)) !== null) {
+    matches.push({
+      start: match.index,
+      end: linkRegex.lastIndex,
+      type: 'link',
+      value: match[0],
+    })
+  }
 
+  const helplineRegex = /(?:1800-\d{2,3}-\d{3,4}|181|108|102|100)/g
+  while ((match = helplineRegex.exec(text)) !== null) {
+    matches.push({
+      start: match.index,
+      end: helplineRegex.lastIndex,
+      type: 'helpline',
+      value: match[0],
+    })
+  }
+
+  // Sort matches by start index
+  matches.sort((a, b) => a.start - b.start)
+
+  // Filter out overlapping matches
+  const nonOverlapping: typeof matches = []
+  let lastEnd = 0
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      nonOverlapping.push(m)
+      lastEnd = m.end
+    }
+  }
+
+  // Build tokens
   const tokens: Token[] = []
   let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  combinedRegex.lastIndex = 0
-
-  while ((match = combinedRegex.exec(text)) !== null) {
-    const matchIndex = match.index
-    const matchStr = match[0]
-
-    if (matchIndex > lastIndex) {
+  for (const m of nonOverlapping) {
+    if (m.start > lastIndex) {
       tokens.push({
         type: 'text',
-        text: text.substring(lastIndex, matchIndex),
+        text: text.substring(lastIndex, m.start),
       })
     }
-
-    const isHelpline = /^(1800-\d{2,3}-\d{3,4}|181|108|102|100)$/.test(matchStr)
     tokens.push({
-      type: isHelpline ? 'helpline' : 'link',
-      text: matchStr,
+      type: m.type,
+      text: m.value,
     })
-
-    lastIndex = combinedRegex.lastIndex
+    lastIndex = m.end
   }
 
   if (lastIndex < text.length) {

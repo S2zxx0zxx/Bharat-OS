@@ -566,7 +566,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-top: 8px;
 }
 .tts-btn:hover { background: var(--saffron); color: white; border-color: var(--saffron); }
-.tts-btn.playing { background: #059669; color: white; border-color: #047857; }
+.tts-btn.playing { background: #065F46; color: white; border-color: #047857; }
 
 /* ── LANGUAGE TOGGLE ── */
 .lang-toggle {
@@ -609,7 +609,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .dark .island-idle { background: rgba(30,41,59,0.95); border-color: rgba(255,255,255,0.05); }
 .island-thinking { background: #7C3AED; color: white; box-shadow: 0 0 20px rgba(124,58,237,0.4); }
 .island-listening { background: #B91C1C; color: white; box-shadow: 0 0 20px rgba(185,28,28,0.5); animation: island-pulse 1.5s infinite; }
-.island-redacted { background: #059669; color: white; box-shadow: 0 0 20px rgba(5,150,105,0.4); }
+.island-redacted { background: #065F46; color: white; box-shadow: 0 0 20px rgba(6,95,70,0.4); }
 .island-warning { background: #B45309; color: white; }
 .island-error { background: #B91C1C; color: white; }
 @keyframes island-pulse {
