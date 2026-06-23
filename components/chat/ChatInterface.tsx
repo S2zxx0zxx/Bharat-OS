@@ -237,6 +237,9 @@ export function ChatInterface() {
         aria-hidden="true"
       />
 
+      {/* Skip link for accessibility */}
+      <a href="#messages-area" className="skip-link">Skip to chat</a>
+
       <Header
         quota={quota}
         darkMode={darkMode}
@@ -244,19 +247,16 @@ export function ChatInterface() {
         activeModule={activeModule}
         languageToggle={
           <div className="lang-toggle">
-            {(['hi', 'en', 'hin'] as const).map((l) => {
-              const isActive = language === l
-              const btnClass = isActive ? 'lang-btn active' : 'lang-btn'
-              return (
-                <button
-                  key={l}
-                  className={btnClass}
-                  onClick={() => setLanguage(l)}
-                >
-                  {getLanguageLabel(l)}
-                </button>
-              )
-            })}
+            {(['hi', 'en', 'hin'] as const).map((l) => (
+              <button
+                key={l}
+                className={language === l ? 'lang-btn active' : 'lang-btn'}
+                onClick={() => setLanguage(l)}
+                aria-pressed={language === l}
+              >
+                {getLanguageLabel(l)}
+              </button>
+            ))}
           </div>
         }
       />
@@ -276,7 +276,7 @@ export function ChatInterface() {
       </nav>
 
       {/* Dynamic Island Notification Pill */}
-      <div className="dynamic-island-wrapper z-40">
+      <div className="dynamic-island-wrapper z-40" aria-live="polite" aria-atomic="true">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${islandState.type}-${islandState.message}`}
@@ -293,55 +293,74 @@ export function ChatInterface() {
         </AnimatePresence>
       </div>
 
-      {/* Welcome banner */}
-      <AnimatePresence mode="wait">
-        {showSuggestions && (
-          <motion.div
-            key={`welcome-${activeModuleId}`}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="welcome-banner z-10 relative"
-            style={{
-              background: `linear-gradient(135deg, ${activeModule.colorLight}, white)`,
-              borderColor: `${activeModule.color}30`,
-            }}
-          >
-            <div className="welcome-emoji animate-pulse" aria-hidden="true">
-              {activeModule.emoji}
-            </div>
-            <div>
-              <h1
-                className="welcome-title"
-                style={{ color: activeModule.color }}
-              >
-                {activeModule.name} — {activeModule.description}
-              </h1>
-              <p className="welcome-subtitle">
-                {translations[language].welcomeSubtitle(activeModule.name)}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Messages area */}
+      {/* Messages area — flex: 1, fills all remaining space */}
       <main
         id="messages-area"
         className="messages-area z-10 relative"
         aria-live="polite"
         aria-label="Chat messages"
       >
+        {/* Welcome banner */}
+        <AnimatePresence mode="wait">
+          {showSuggestions && (
+            <motion.div
+              key={`welcome-${activeModuleId}`}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="welcome-banner z-10 relative"
+              style={{
+                background: `linear-gradient(135deg, ${activeModule.colorLight}, white)`,
+                borderColor: `${activeModule.color}30`,
+              }}
+            >
+              <div className="welcome-emoji animate-pulse" aria-hidden="true">
+                {activeModule.emoji}
+              </div>
+              <div>
+                <h1
+                  className="welcome-title"
+                  style={{ color: activeModule.color }}
+                >
+                  {activeModule.name} — {activeModule.description}
+                </h1>
+                <p className="welcome-subtitle">
+                  {translations[language].welcomeSubtitle(activeModule.name)}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {messages.map((message) =>
             message.isLoading ? null : (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble key={message.id} message={message} language={language} />
             )
           )}
 
           {isLoading && (
             <TypingIndicator key="typing" moduleColor={activeModule.color} />
+          )}
+        </AnimatePresence>
+
+        {/* Suggestions */}
+        <AnimatePresence>
+          {showSuggestions && (
+            <motion.div
+              key={`suggestions-${activeModuleId}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="z-10 relative mt-auto"
+            >
+              <SuggestionChips
+                module={activeModule}
+                onSelect={handleSend}
+                disabled={isExceeded}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -371,25 +390,6 @@ export function ChatInterface() {
 
         <div ref={messagesEndRef} />
       </main>
-
-      {/* Suggestions */}
-      <AnimatePresence>
-        {showSuggestions && (
-          <motion.div
-            key={`suggestions-${activeModuleId}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="z-10 relative"
-          >
-            <SuggestionChips
-              module={activeModule}
-              onSelect={handleSend}
-              disabled={isExceeded}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Quota exceeded banner */}
       <AnimatePresence>

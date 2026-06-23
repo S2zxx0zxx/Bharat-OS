@@ -12,8 +12,8 @@ import {
 export function useQuota() {
   const [quota, setQuota] = useState<QuotaState>({
     used: 0,
-    limit: 1000,
-    remaining: 1000,
+    limit: 10,
+    remaining: 10,
     isPro: false,
     resetDate: new Date().toISOString(),
   })

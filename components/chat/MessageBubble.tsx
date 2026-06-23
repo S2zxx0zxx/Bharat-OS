@@ -422,8 +422,8 @@ function SIPCalculator() {
   )
 }
 
-export function MessageBubble(props: Readonly<{ message: Message }>) {
-  const { message } = props
+export function MessageBubble(props: Readonly<{ message: Message; language?: 'hi' | 'en' | 'hin' }>) {
+  const { message, language = 'hi' } = props
   const module = getModule(message.moduleId)
   const isUser = message.role === 'user'
   const timeStr = message.timestamp.toLocaleTimeString('hi-IN', {
@@ -460,7 +460,7 @@ export function MessageBubble(props: Readonly<{ message: Message }>) {
           .replaceAll('✅', '')
           .replaceAll('📞', '')
         const utterance = new globalThis.SpeechSynthesisUtterance(cleanText)
-        utterance.lang = 'hi-IN'
+        utterance.lang = language === 'en' ? 'en-IN' : 'hi-IN'
         utterance.rate = 0.9
 
         const voices = synth.getVoices()

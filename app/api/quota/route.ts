@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 
-const FREE_QUOTA = 1000
+const FREE_QUOTA = 10
 
 export async function GET(req: NextRequest) {
   try {

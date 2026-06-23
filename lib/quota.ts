@@ -1,6 +1,6 @@
 import { QuotaState } from '@/types'
 
-const FREE_QUOTA = 1000
+const FREE_QUOTA = 10
 const QUOTA_KEY_PREFIX = 'bharatos-quota'
 
 interface StoredQuota {

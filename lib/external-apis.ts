@@ -269,9 +269,10 @@ export async function fetchMandiPrices(
   try {
     // Use data.gov.in open API for mandi prices
     const encodedCommodity = encodeURIComponent(commodity)
+    const apiKey = process.env.DATA_GOV_API_KEY ?? '579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b'
     const url =
       `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070` +
-      `?api-key=579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b` +
+      `?api-key=${apiKey}` +
       `&format=json&limit=5` +
       `&filters[commodity]=${encodedCommodity}`
 
@@ -421,64 +422,64 @@ function formatMetalContext(prices: MetalPrices): string {
 
 const EXAM_CALENDAR: ExamDate[] = [
   {
-    name: 'JEE Main 2025 Session 2',
-    date: 'April 2025',
-    registrationDeadline: 'March 2025',
+    name: 'JEE Main 2026 Session 1',
+    date: 'January 2026',
+    registrationDeadline: 'November 2025',
     website: 'jeemain.nta.ac.in',
   },
   {
-    name: 'NEET UG 2025',
-    date: 'May 2025',
-    registrationDeadline: 'March 2025',
+    name: 'JEE Main 2026 Session 2',
+    date: 'April 2026',
+    registrationDeadline: 'March 2026',
+    website: 'jeemain.nta.ac.in',
+  },
+  {
+    name: 'NEET UG 2026',
+    date: 'May 2026',
+    registrationDeadline: 'March 2026',
     website: 'neet.nta.nic.in',
   },
   {
-    name: 'CUET UG 2025',
-    date: 'May-June 2025',
-    registrationDeadline: 'March 2025',
+    name: 'CUET UG 2026',
+    date: 'May-June 2026',
+    registrationDeadline: 'March 2026',
     website: 'cuet.samarth.ac.in',
   },
   {
-    name: 'SSC CGL 2025',
-    date: 'June-July 2025',
-    registrationDeadline: 'April 2025',
+    name: 'SSC CGL 2026',
+    date: 'July 2026',
+    registrationDeadline: 'May 2026',
     website: 'ssc.nic.in',
   },
   {
-    name: 'UPSC CSE Prelims 2025',
-    date: 'May 2025',
-    registrationDeadline: 'February 2025',
+    name: 'UPSC CSE Prelims 2026',
+    date: 'June 2026',
+    registrationDeadline: 'February 2026',
     website: 'upsc.gov.in',
   },
   {
-    name: 'IBPS PO 2025',
-    date: 'October 2025',
-    registrationDeadline: 'August 2025',
+    name: 'IBPS PO 2026',
+    date: 'October 2026',
+    registrationDeadline: 'August 2026',
     website: 'ibps.in',
   },
   {
-    name: 'GATE 2026',
-    date: 'February 2026',
-    registrationDeadline: 'September 2025',
+    name: 'GATE 2027',
+    date: 'February 2027',
+    registrationDeadline: 'September 2026',
     website: 'gate.iitd.ac.in',
   },
   {
-    name: 'CAT 2025',
-    date: 'November 2025',
-    registrationDeadline: 'August 2025',
+    name: 'CAT 2026',
+    date: 'November 2026',
+    registrationDeadline: 'August 2026',
     website: 'iimcat.ac.in',
   },
   {
-    name: 'NDA 2025 (II)',
-    date: 'September 2025',
-    registrationDeadline: 'June 2025',
+    name: 'NDA 2026 (I)',
+    date: 'April 2026',
+    registrationDeadline: 'January 2026',
     website: 'upsc.gov.in',
-  },
-  {
-    name: 'RRB NTPC 2025',
-    date: 'August 2025',
-    registrationDeadline: 'May 2025',
-    website: 'rrbcdg.gov.in',
   },
 ]
 
