@@ -8,5 +8,11 @@ export const metadata: Metadata = {
 }
 
 export default function ChatPage() {
-  return <ChatInterface />
+  return (
+    <div className="desktop-shell">
+      {/* Antigravity massive glow behind chat card */}
+      <div className="antigravity-glow-bg" aria-hidden="true" />
+      <ChatInterface />
+    </div>
+  )
 }
