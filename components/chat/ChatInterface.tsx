@@ -118,17 +118,24 @@ export function ChatInterface() {
   const handleSend = useCallback(async (text: string) => {
     if (isExceeded) return
     const secCheck = securityCheck(text)
+    if (!secCheck.isSafe) {
+      setIslandState({ type: 'warning', message: 'Suspicious input blocked!', emoji: '⚠️' })
+      setTimeout(() => {
+        setIslandState({ type: 'idle', message: translations[language].apiActive(activeModule.name), emoji: activeModule.emoji })
+      }, 3000)
+      return
+    }
     if (secCheck.hasPII) {
       setIslandState({ type: 'redacted', message: 'Privacy Secured: PII Redacted!', emoji: '🔒' })
       setTimeout(() => {
-        setIslandState({ type: 'idle', message: `${activeModule.name} Active`, emoji: activeModule.emoji })
+        setIslandState({ type: 'idle', message: translations[language].apiActive(activeModule.name), emoji: activeModule.emoji })
       }, 4500)
     }
     const ok = consumeQuota()
     if (!ok) return
-    lastQueryRef.current = text
-    await sendMessage(text)
-  }, [isExceeded, consumeQuota, sendMessage, activeModule])
+    lastQueryRef.current = secCheck.sanitizedQuery
+    await sendMessage(secCheck.sanitizedQuery)
+  }, [isExceeded, consumeQuota, sendMessage, activeModule, language])
 
   const handleModuleSwitch = useCallback((id: ModuleId) => {
     switchModule(id)
@@ -143,6 +150,22 @@ export function ChatInterface() {
       (globalThis as unknown as Record<string, unknown>).SpeechRecognition ||
       (globalThis as unknown as Record<string, unknown>).webkitSpeechRecognition
     if (!SpeechRecognitionAPI) { alert('Voice not supported'); return }
+
+    if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          (recognitionRef.current as any).abort()
+        } catch { /* ignore */ }
+      }
+      setIsRecording(false)
+      setIslandState({
+        type: 'idle',
+        message: translations[language].apiActive(activeModule.name),
+        emoji: activeModule.emoji,
+      })
+      return
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new (SpeechRecognitionAPI as any)()
     recognition.lang = language === 'en' ? 'en-IN' : 'hi-IN'
@@ -169,7 +192,7 @@ export function ChatInterface() {
     }
     recognitionRef.current = recognition
     recognition.start()
-  }, [language, handleSend, activeModule])
+  }, [language, handleSend, activeModule, isRecording])
 
   const showSuggestions = messages.length === 0 && !isLoading
   const t = translations[language]
