@@ -15,9 +15,8 @@ import { useModule } from '@/hooks/useModule'
 import { ModuleId } from '@/types'
 import { securityCheck } from '@/lib/security'
 
-// ── localStorage hook (SSR-Safe) ─────────────────────────────────────────────
 function useLocalStorage<T>(key: string, defaultValue: T): [T, Dispatch<SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(defaultValue) // Always start with default
+  const [value, setValue] = useState<T>(defaultValue)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -49,52 +48,46 @@ function getLanguageLabel(l: 'hi' | 'en' | 'hin'): string {
 
 const translations = {
   hi: {
-    welcomeSubtitle: (moduleName: string) => `नमस्ते! मैं आपका ${moduleName} असिस्टेंट हूँ। कोई भी सवाल हिंदी में पूछें।`,
-    quotaTitle: "आज की सीमा समाप्त हो गई",
-    quotaSub: "10 मुफ्त सवाल प्रतिदिन। कल वापस आएं या प्रो प्लान में अपग्रेड करें।",
-    thinking: "एआई सोच रहा है...",
-    listening: "आवाज़ सुन रहे हैं...",
-    voiceError: "आवाज़ समझ नहीं आई",
-    apiActive: (moduleName: string) => `${moduleName} सक्रिय`,
+    welcomeSubtitle: (n: string) => `नमस्ते! मैं आपका ${n} असिस्टेंट हूँ। कोई भी सवाल हिंदी में पूछें।`,
+    quotaTitle: 'आज की सीमा समाप्त हो गई',
+    quotaSub: '10 मुफ्त सवाल प्रतिदिन। कल वापस आएं।',
+    thinking: 'एआई सोच रहा है...',
+    listening: 'आवाज़ सुन रहे हैं...',
+    voiceError: 'आवाज़ समझ नहीं आई',
+    apiActive: (n: string) => `${n} सक्रिय`,
   },
   en: {
-    welcomeSubtitle: (moduleName: string) => `Hello! I am your ${moduleName} assistant. Feel free to ask any question in English.`,
-    quotaTitle: "Daily Limit Exceeded",
-    quotaSub: "10 free questions/day. Please return tomorrow or upgrade to Pro.",
-    thinking: "AI is thinking...",
-    listening: "Listening to voice...",
-    voiceError: "Could not understand voice",
-    apiActive: (moduleName: string) => `${moduleName} Active`,
+    welcomeSubtitle: (n: string) => `Hello! I am your ${n} assistant. Ask anything in English.`,
+    quotaTitle: 'Daily Limit Reached',
+    quotaSub: '10 free questions/day. Come back tomorrow.',
+    thinking: 'AI is thinking...',
+    listening: 'Listening...',
+    voiceError: 'Could not understand voice',
+    apiActive: (n: string) => `${n} Active`,
   },
   hin: {
-    welcomeSubtitle: (moduleName: string) => `Namaste! Main aapka ${moduleName} assistant hoon. Koi bhi sawaal Hindi/Hinglish mein poochein.`,
-    quotaTitle: "Aaj ki limit khatam ho gayi",
-    quotaSub: "10 free sawaal/din. Kal wapas aao ya Pro plan upgrade karein.",
-    thinking: "AI soch raha hai...",
-    listening: "Awaaz sun rahe hain...",
-    voiceError: "Awaaz samajh nahi aayi",
-    apiActive: (moduleName: string) => `${moduleName} Active`,
-  }
+    welcomeSubtitle: (n: string) => `Namaste! Main aapka ${n} assistant hoon. Koi bhi sawaal poochein.`,
+    quotaTitle: 'Aaj ki limit khatam',
+    quotaSub: '10 free sawaal/din. Kal wapas aao.',
+    thinking: 'AI soch raha hai...',
+    listening: 'Awaaz sun rahe hain...',
+    voiceError: 'Awaaz samajh nahi aayi',
+    apiActive: (n: string) => `${n} Active`,
+  },
 }
 
-// ── ChatInterface ────────────────────────────────────────────────
 export function ChatInterface() {
-  const { activeModuleId, activeModule, allModules, switchModule } =
-    useModule('legal')
-  const { messages, isLoading, error, sendMessage, clearMessages } =
-    useChat(activeModuleId)
+  const { activeModuleId, activeModule, allModules, switchModule } = useModule('legal')
+  const { messages, isLoading, error, sendMessage, clearMessages } = useChat(activeModuleId)
   const { quota, isExceeded, consumeQuota } = useQuota()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastQueryRef = useRef<string>('')
   const [darkMode, setDarkMode] = useLocalStorage('bharatos-dark', false)
-
-  // Upgraded States for Phase 3 Component 1
   const [ambientColor, setAmbientColor] = useState('#7C3AED')
   const [isRecording, setIsRecording] = useState(false)
   const [language, setLanguage] = useState<'hi' | 'en' | 'hin'>('hi')
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<unknown>(null)
 
-  // Dynamic Island State
   const [islandState, setIslandState] = useState<{
     type: 'idle' | 'listening' | 'redacted' | 'warning' | 'error' | 'thinking'
     message: string
@@ -105,121 +98,73 @@ export function ChatInterface() {
     emoji: activeModule.emoji,
   })
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Apply dark mode
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
   }, [darkMode])
 
-  // Handle island state updates for active module, language, and loading transitions
   useEffect(() => {
     const t = translations[language]
     if (isLoading) {
-      setIslandState({
-        type: 'thinking',
-        message: t.thinking,
-        emoji: '⚡',
-      })
+      setIslandState({ type: 'thinking', message: t.thinking, emoji: '⚡' })
     } else {
-      setIslandState({
-        type: 'idle',
-        message: t.apiActive(activeModule.name),
-        emoji: activeModule.emoji,
-      })
+      setIslandState({ type: 'idle', message: t.apiActive(activeModule.name), emoji: activeModule.emoji })
     }
   }, [activeModule, language, isLoading])
 
-  const handleSend = useCallback(
-    async (text: string) => {
-      if (isExceeded) return
+  const handleSend = useCallback(async (text: string) => {
+    if (isExceeded) return
+    const secCheck = securityCheck(text)
+    if (secCheck.hasPII) {
+      setIslandState({ type: 'redacted', message: 'Privacy Secured: PII Redacted!', emoji: '🔒' })
+      setTimeout(() => {
+        setIslandState({ type: 'idle', message: `${activeModule.name} Active`, emoji: activeModule.emoji })
+      }, 4500)
+    }
+    const ok = consumeQuota()
+    if (!ok) return
+    lastQueryRef.current = text
+    await sendMessage(text)
+  }, [isExceeded, consumeQuota, sendMessage, activeModule])
 
-      // Client-side PII check to trigger Dynamic Island alert
-      const secCheck = securityCheck(text)
-      if (secCheck.hasPII) {
-        setIslandState({
-          type: 'redacted',
-          message: 'Privacy Secured: PII Redacted!',
-          emoji: '🔒',
-        })
-        // Return island to active module state after 4.5 seconds
-        setTimeout(() => {
-          setIslandState({
-            type: 'idle',
-            message: `${activeModule.name} Active`,
-            emoji: activeModule.emoji,
-          })
-        }, 4500)
-      }
-
-      const ok = consumeQuota()
-      if (!ok) return
-      lastQueryRef.current = text
-      await sendMessage(text)
-    },
-    [isExceeded, consumeQuota, sendMessage, activeModule]
-  )
-
-  const handleModuleSwitch = useCallback(
-    (id: ModuleId) => {
-      switchModule(id)
-      clearMessages()
-      const mod = allModules.find((m) => m.id === id)
-      if (mod) setAmbientColor(mod.color)
-    },
-    [switchModule, clearMessages, allModules]
-  )
+  const handleModuleSwitch = useCallback((id: ModuleId) => {
+    switchModule(id)
+    clearMessages()
+    const mod = allModules.find((m) => m.id === id)
+    if (mod) setAmbientColor(mod.color)
+  }, [switchModule, clearMessages, allModules])
 
   const handleVoiceInput = useCallback(() => {
     if (globalThis.window === undefined) return
     const SpeechRecognitionAPI =
-      (globalThis.window as any).SpeechRecognition || (globalThis.window as any).webkitSpeechRecognition
-    if (!SpeechRecognitionAPI) {
-      alert('Aapka browser voice input support nahi karta')
-      return
-    }
-    const recognition = new SpeechRecognitionAPI()
+      (globalThis as unknown as Record<string, unknown>).SpeechRecognition ||
+      (globalThis as unknown as Record<string, unknown>).webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) { alert('Voice not supported'); return }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new (SpeechRecognitionAPI as any)()
     recognition.lang = language === 'en' ? 'en-IN' : 'hi-IN'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     recognition.onstart = () => {
       setIsRecording(true)
-      setIslandState({
-        type: 'listening',
-        message: translations[language].listening,
-        emoji: '🎤',
-      })
+      setIslandState({ type: 'listening', message: translations[language].listening, emoji: '🎤' })
     }
-    recognition.onend = () => {
-      setIsRecording(false)
-    }
+    recognition.onend   = () => setIsRecording(false)
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript
-      if (transcript.trim()) {
-        setIslandState({
-          type: 'thinking',
-          message: `Suna: "${transcript.substring(0, 20)}..."`,
-          emoji: '💬',
-        })
-        handleSend(transcript.trim())
+      const t = event.results[0][0].transcript
+      if (t.trim()) {
+        setIslandState({ type: 'thinking', message: `Suna: "${t.substring(0, 20)}..."`, emoji: '💬' })
+        handleSend(t.trim())
       }
     }
     recognition.onerror = () => {
       setIsRecording(false)
-      setIslandState({
-        type: 'error',
-        message: translations[language].voiceError,
-        emoji: '⚠️',
-      })
+      setIslandState({ type: 'error', message: translations[language].voiceError, emoji: '⚠️' })
       setTimeout(() => {
-        setIslandState({
-          type: 'idle',
-          message: translations[language].apiActive(activeModule.name),
-          emoji: activeModule.emoji,
-        })
+        setIslandState({ type: 'idle', message: translations[language].apiActive(activeModule.name), emoji: activeModule.emoji })
       }, 3000)
     }
     recognitionRef.current = recognition
@@ -227,19 +172,15 @@ export function ChatInterface() {
   }, [language, handleSend, activeModule])
 
   const showSuggestions = messages.length === 0 && !isLoading
+  const t = translations[language]
 
   return (
-    <div className={`chat-root relative overflow-hidden ${darkMode ? 'dark' : ''}`}>
-      {/* Ambient background glows for 10x aesthetics */}
-      <div
-        className="ambient-glow"
-        style={{ background: ambientColor }}
-        aria-hidden="true"
-      />
+    <div className={`chat-root ${darkMode ? 'dark' : ''}`}>
 
-      {/* Skip link for accessibility */}
-      <a href="#messages-area" className="skip-link">Skip to chat</a>
+      {/* ── Ambient glow ── */}
+      <div className="ambient-glow" style={{ background: ambientColor }} aria-hidden="true" />
 
+      {/* ── HEADER ── */}
       <Header
         quota={quota}
         darkMode={darkMode}
@@ -261,8 +202,8 @@ export function ChatInterface() {
         }
       />
 
-      {/* Module tabs */}
-      <nav className="module-tabs-nav z-10 relative" aria-label="BharatOS modules">
+      {/* ── MODULE TABS ── */}
+      <nav className="module-tabs-nav" aria-label="BharatOS modules">
         <div className="module-tabs-scroll">
           {allModules.map((module) => (
             <ModuleTab
@@ -275,146 +216,119 @@ export function ChatInterface() {
         </div>
       </nav>
 
-      {/* Dynamic Island Notification Pill */}
-      <div className="dynamic-island-wrapper z-40" aria-live="polite" aria-atomic="true">
+      {/* ── DYNAMIC ISLAND ── */}
+      <div className="dynamic-island-wrapper" aria-live="polite" aria-atomic="true">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${islandState.type}-${islandState.message}`}
-            layoutId="dynamic-island-pill"
-            initial={{ scale: 0.85, y: -20, opacity: 0 }}
+            initial={{ scale: 0.82, y: -18, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.85, y: -20, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            exit={{ scale: 0.82, y: -18, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
             className={`dynamic-island island-${islandState.type}`}
           >
-            <span className="island-emoji animate-bounce">{islandState.emoji}</span>
-            <span className="island-message">{islandState.message}</span>
+            <span style={{ fontSize: '1rem', lineHeight: 1 }}>{islandState.emoji}</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.02em', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {islandState.message}
+            </span>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Messages area — flex: 1, fills all remaining space */}
-      <main
-        id="messages-area"
-        className="messages-area z-10 relative"
-        aria-live="polite"
-        aria-label="Chat messages"
-      >
-        {/* Welcome banner */}
+      {/* ── MESSAGES AREA — flex:1 fills all remaining height ── */}
+      <main id="messages-area" className="messages-area" aria-live="polite" aria-label="Chat messages">
+
+        {/* Welcome banner — inside messages area, no external gap */}
         <AnimatePresence mode="wait">
           {showSuggestions && (
             <motion.div
               key={`welcome-${activeModuleId}`}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="welcome-banner z-10 relative"
+              initial={{ opacity: 0, y: -12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.97 }}
+              transition={{ duration: 0.26, ease: [0, 0, 0.2, 1] }}
+              className="welcome-banner"
               style={{
                 background: `linear-gradient(135deg, ${activeModule.colorLight}, white)`,
                 borderColor: `${activeModule.color}30`,
               }}
             >
-              <div className="welcome-emoji animate-pulse" aria-hidden="true">
-                {activeModule.emoji}
-              </div>
+              <div className="welcome-emoji" aria-hidden="true">{activeModule.emoji}</div>
               <div>
-                <h1
-                  className="welcome-title"
-                  style={{ color: activeModule.color }}
-                >
+                <h1 className="welcome-title" style={{ color: activeModule.color }}>
                   {activeModule.name} — {activeModule.description}
                 </h1>
-                <p className="welcome-subtitle">
-                  {translations[language].welcomeSubtitle(activeModule.name)}
-                </p>
+                <p className="welcome-subtitle">{t.welcomeSubtitle(activeModule.name)}</p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Messages */}
         <AnimatePresence>
           {messages.map((message) =>
             message.isLoading ? null : (
-              <MessageBubble key={message.id} message={message} language={language} />
+              <MessageBubble key={message.id} message={message} />
             )
           )}
-
-          {isLoading && (
-            <TypingIndicator key="typing" moduleColor={activeModule.color} />
-          )}
+          {isLoading && <TypingIndicator key="typing" moduleColor={activeModule.color} />}
         </AnimatePresence>
 
-        {/* Suggestions */}
-        <AnimatePresence>
-          {showSuggestions && (
-            <motion.div
-              key={`suggestions-${activeModuleId}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="z-10 relative mt-auto"
-            >
-              <SuggestionChips
-                module={activeModule}
-                onSelect={handleSend}
-                disabled={isExceeded}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Error display */}
+        {/* Error */}
         <AnimatePresence>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="error-banner"
-              role="alert"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="error-banner" role="alert"
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={15} />
               <span>{error}</span>
               <button
                 onClick={() => lastQueryRef.current && handleSend(lastQueryRef.current)}
-                className="error-retry-btn"
-                aria-label="Retry"
+                className="error-retry-btn" aria-label="Retry"
               >
-                <RefreshCw size={14} />
-                Retry
+                <RefreshCw size={13} /> Retry
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} style={{ height: '4px' }} />
       </main>
 
-      {/* Quota exceeded banner */}
+      {/* ── SUGGESTIONS — outside messages area, above footer ── */}
+      <AnimatePresence>
+        {showSuggestions && (
+          <motion.div
+            key={`suggestions-${activeModuleId}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SuggestionChips module={activeModule} onSelect={handleSend} disabled={isExceeded} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── QUOTA EXCEEDED ── */}
       <AnimatePresence>
         {isExceeded && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="quota-exceeded-banner z-10 relative"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            className="quota-exceeded-banner"
           >
-            <Lock size={18} className="text-orange-600" />
+            <Lock size={18} style={{ color: '#EA580C', flexShrink: 0 }} />
             <div>
-              <p className="quota-exceeded-title text-orange-950 font-bold">
-                {translations[language].quotaTitle}
-              </p>
-              <p className="quota-exceeded-sub text-orange-900">
-                {translations[language].quotaSub}
-              </p>
+              <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#9A3412' }}>{t.quotaTitle}</p>
+              <p style={{ fontSize: '0.74rem', marginTop: 2, color: '#C2410C' }}>{t.quotaSub}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Input bar */}
-      <footer className="input-footer z-10 relative" role="contentinfo">
+      {/* ── INPUT FOOTER ── */}
+      <footer className="input-footer" role="contentinfo">
         <InputBar
           module={activeModule}
           onSend={handleSend}
@@ -425,6 +339,7 @@ export function ChatInterface() {
           language={language}
         />
       </footer>
+
     </div>
   )
 }
